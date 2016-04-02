@@ -13,6 +13,8 @@
 
 #include <grid_map_core/Polygon.hpp>
 
+#include <nav_msgs/Path.h>
+
 
 namespace grid_map_polygon_tools{
   
@@ -21,10 +23,29 @@ namespace grid_map_polygon_tools{
   
   // Poly from 2 corner points 
   void setFootprintPoly(const Eigen::Vector2d& bottom_left, const Eigen::Vector2d& top_right, grid_map::Polygon& poly, const std::string& frame_id = "base_link");
+
+  void printPolyInfo(const grid_map::Polygon& poly);
+
   
   
   grid_map::Polygon getTransformedPoly(const grid_map::Polygon& poly, const geometry_msgs::Pose& pose, const std::string& frame_id = "world");
   grid_map::Polygon getTransformedPoly(const grid_map::Polygon& poly, const Eigen::Affine3d& pose, const std::string& frame_id = "world");
+
+  //grid_map::Polygon
+
+  bool isPathInCollisionOccupancy(const grid_map::Polygon&  poly,
+                         const grid_map::GridMap& grid_map,
+                         const nav_msgs::Path& path,
+                         const std::string& layer = "occupancy");
+
+
+  bool isPathInCollisionElevation(const grid_map::Polygon&  poly,
+                         const grid_map::GridMap& grid_map,
+                         const nav_msgs::Path& path,
+                         const double robot_height,
+                         const double height_threshold,
+                         geometry_msgs::Pose& obstacle_pose,
+                         const std::string& layer = "elevation");
 
 
 
