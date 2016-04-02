@@ -96,6 +96,8 @@ namespace grid_map_polygon_tools{
                          const double robot_elevation,
                          const double elevation_threshold,
                          geometry_msgs::Pose& obstacle_pose,
+                         const double min_dist,
+                         const double max_dist,
                          const std::string& layer)
   {
     if (!grid_map.exists(layer)){
@@ -116,37 +118,41 @@ namespace grid_map_polygon_tools{
 
       //std::cout << i << "\n";
 
-      /*
+
       if (i > 0){
         dist += (Eigen::Vector2d(path.poses[i].pose.position.x, path.poses[i].pose.position.y) -
                  Eigen::Vector2d(path.poses[i-1].pose.position.x, path.poses[i-1].pose.position.y)).norm();
       }
 
-      ROS_INFO("dist: %f", dist);
-      */
+      //ROS_INFO("dist: %f", dist);
 
-      for (grid_map::PolygonIterator poly_iterator(grid_map, transformed_poly); !poly_iterator.isPastEnd(); ++poly_iterator) {
+      if (dist > max_dist){
+        return false;
+      }else if (dist > min_dist){
 
-        const grid_map::Index index(*poly_iterator);
+        for (grid_map::PolygonIterator poly_iterator(grid_map, transformed_poly); !poly_iterator.isPastEnd(); ++poly_iterator) {
+
+          const grid_map::Index index(*poly_iterator);
 
 
-        //if (grid_map.isValid(index)){
-        //std::cout << "re: " << robot_elevation << " el " <<elev_data(index(0), index(1)) << "\n";
-        if ( std::abs( robot_elevation - elev_data(index(0), index(1)) ) > elevation_threshold ){
+          //if (grid_map.isValid(index)){
+          //std::cout << "re: " << robot_elevation << " el " <<elev_data(index(0), index(1)) << "\n";
+          if ( std::abs( robot_elevation - elev_data(index(0), index(1)) ) > elevation_threshold ){
 
-          grid_map::Position position;
-          grid_map.getPosition(index, position);
+            grid_map::Position position;
+            grid_map.getPosition(index, position);
 
-          obstacle_pose.position.x = position.x();
-          obstacle_pose.position.y = position.y();
-          obstacle_pose.position.z = position.z();
+            obstacle_pose.position.x = position.x();
+            obstacle_pose.position.y = position.y();
+            obstacle_pose.position.z = position.z();
 
-          obstacle_pose.orientation = path.poses[i].pose.orientation;
+            obstacle_pose.orientation = path.poses[i].pose.orientation;
 
-          return true;
+            return true;
+          }
+
+
         }
-
-
       }
 
 
