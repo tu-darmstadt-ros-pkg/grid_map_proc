@@ -47,6 +47,7 @@ namespace grid_map_polygon_tools{
                          geometry_msgs::Pose& obstacle_pose,
                          const double min_dist = 0.0,
                          const double max_dist = 10.0,
+                         const double found_obstacle_height_offset = 0.0,
                          const std::string& layer = "elevation");
 
 

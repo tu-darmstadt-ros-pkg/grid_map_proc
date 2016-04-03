@@ -98,6 +98,7 @@ namespace grid_map_polygon_tools{
                          geometry_msgs::Pose& obstacle_pose,
                          const double min_dist,
                          const double max_dist,
+                         const double found_obstacle_height_offset,
                          const std::string& layer)
   {
     if (!grid_map.exists(layer)){
@@ -144,7 +145,7 @@ namespace grid_map_polygon_tools{
 
             obstacle_pose.position.x = position.x();
             obstacle_pose.position.y = position.y();
-            obstacle_pose.position.z = position.z();
+            obstacle_pose.position.z = position.z() + found_obstacle_height_offset;
 
             obstacle_pose.orientation = path.poses[i].pose.orientation;
 
