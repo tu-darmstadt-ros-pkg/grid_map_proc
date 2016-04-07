@@ -50,6 +50,13 @@ namespace grid_map_polygon_tools{
                          const double found_obstacle_height_offset = 0.0,
                          const std::string& layer = "elevation");
 
+  void segmentObstacle(const grid_map::GridMap& grid_map,
+                  const geometry_msgs::Pose& obstacle_initial_pose,
+                  const double robot_height,
+                  const double height_threshold,
+                  grid_map::Polygon& obstacle_poly,
+                  const std::string& layer);
+
 
 
 
