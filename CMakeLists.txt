@@ -32,6 +32,7 @@ include_directories(
 ## Declare a C++ library
 add_library(grid_map_proc
   src/grid_map_polygon_tools.cpp
+  src/grid_map_transforms.cpp
 )
 
 ## Add cmake target dependencies of the library
