@@ -6,15 +6,15 @@
 namespace grid_map_transforms{
   
   
-  bool addDistanceTransform(grid_map::GridMap& grid_map,
-                            std::string occupancy_layer,
-                            std::string dist_trans_layer)
+  bool addDistanceTransformCv(grid_map::GridMap& grid_map,
+                              std::string occupancy_layer,
+                              std::string dist_trans_layer)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
 
     grid_map::Matrix& grid_data = grid_map[occupancy_layer];
-    
+
     cv::Mat map_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
     
     
@@ -53,6 +53,115 @@ namespace grid_map_transforms{
     cv::distanceTransform(map_mat, distance_transformed, 2, 3);
     
     data_normal = data;
+
+    return true;
+  }
+
+  bool addExplorationTransform(grid_map::GridMap& grid_map,
+                            const std::vector<grid_map::Index>& goal_points,
+                            std::string occupancy_layer,
+                            std::string dist_trans_layer,
+                            std::string expl_trans_layer)
+  {
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    grid_map.add(expl_trans_layer, std::numeric_limits<float>::max());
+    grid_map::Matrix& expl_layer (grid_map[expl_trans_layer]);
+
+    std::queue<grid_map::Index> point_queue;
+
+    for (size_t i = 0; i < goal_points.size(); ++i){
+      const grid_map::Index& point = goal_points[i];
+      expl_layer(point(0), point(1)) = 0.0;
+      point_queue.push(point);
+    }
+
+    size_t size_x_lim = grid_map.getSize()(0) -1;
+    size_t size_y_lim = grid_map.getSize()(1) -1;
+
+    float adjacent_dist = 0.955;
+    float diagonal_dist = 1.3693;
+
+    while (point_queue.size()){
+      grid_map::Index point (point_queue.front());
+      point_queue.pop();
+
+      //Reject points near border here early as to not require checks later
+      if (point(0) < 1 || point(0) >= size_x_lim ||
+          point(1) < 1 || point(1) >= size_y_lim){
+          continue;
+      }
+
+      float current_val = expl_layer(point(0), point(1));
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1),
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0),
+                      point(1)-1,
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1),
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0),
+                      point(1)+1,
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1)-1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1)-1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1)+1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1)+1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+    }
 
     return true;
   }
