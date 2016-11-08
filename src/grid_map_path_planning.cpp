@@ -19,6 +19,12 @@ namespace grid_map_path_planning{
     grid_map::Index next_index;
 
     if (!grid_map.getIndex(grid_map::Position(start_pose.position.x, start_pose.position.y),current_index)){
+      ROS_WARN("Start index not in map");
+      return false;
+    }
+
+    if (expl_data(current_index(0), current_index(1)) == std::numeric_limits<float>::max()){
+      ROS_WARN("Start index not in exploration transform");
       return false;
     }
 
@@ -33,6 +39,9 @@ namespace grid_map_path_planning{
     //std::string global_frame = costmap_ros_->getGlobalFrameID();
     //trajPoint.header.frame_id = global_frame;
 
+    //std::cout << "\nStart curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
+
     while(!expl_data(current_index(0), current_index(1)) == 0.0)
     {
 
@@ -42,6 +51,9 @@ namespace grid_map_path_planning{
       //    point(1) < 1 || point(1) >= size_y_lim){
       //    continue;
       //}
+
+      //std::cout << "\nStartloop curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
 
 
       float lowest_cost = std::numeric_limits<float>::min();
@@ -53,6 +65,9 @@ namespace grid_map_path_planning{
                              lowest_cost,
                              next_index);
 
+      //std::cout << "\n1stouchloop curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
+
       touchGradientCell(expl_data,
                              current_index,
                              current_index(0)+1,
@@ -103,10 +118,16 @@ namespace grid_map_path_planning{
                              lowest_cost,
                              next_index);
 
+      //std::cout << "\ncurr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
 
       if (lowest_cost == std::numeric_limits<float>::min()){
+        ROS_WARN("Cannot find gradient");
         return false;
       }
+
+      //std::cout << "enter dat\n";
+      //int bla;
+      //std::cin >> bla;
 
       current_index = next_index;
       path_indices.push_back(current_index);
