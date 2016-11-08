@@ -16,7 +16,7 @@ namespace grid_map_path_planning{
 
     bool findPathExplorationTransform(grid_map::GridMap& grid_map,
                             const geometry_msgs::Pose& start_pose,
-                            nav_msgs::Path& path,
+                            std::vector<geometry_msgs::PoseStamped>& path,
                             std::string occupancy_layer = "occupancy",
                             std::string expl_trans_layer = "exploration_transform");
 

@@ -8,14 +8,12 @@ namespace grid_map_path_planning{
   
   bool findPathExplorationTransform(grid_map::GridMap& grid_map,
                                     const geometry_msgs::Pose& start_pose,
-                                    nav_msgs::Path& path,
+                                    std::vector<geometry_msgs::PoseStamped>& path,
                                     std::string occupancy_layer,
                                     std::string expl_trans_layer)
   {
 
     grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
-
-
 
     grid_map::Index current_index;
     grid_map::Index next_index;
@@ -106,7 +104,6 @@ namespace grid_map_path_planning{
                              next_index);
 
 
-
       if (lowest_cost == std::numeric_limits<float>::min()){
         return false;
       }
@@ -115,15 +112,23 @@ namespace grid_map_path_planning{
       path_indices.push_back(current_index);
     }
 
+    //path.header.frame_id = "map";
+    //path.header.stamp = ros::Time::now();
+    path.resize(path_indices.size());
+
     for (size_t i = 0; i < path_indices.size(); ++i){
-        grid_map::Position position;
-        grid_map.getPosition(path_indices[i], position);
+      grid_map::Position position;
+      grid_map.getPosition(path_indices[i], position);
+
+      geometry_msgs::Pose& pose = path[i].pose;
+
+      pose.position.x = position(0);
+      pose.position.y = position(1);
+      pose.orientation.w = 1.0;
 
     }
 
-
     return true;
-
   }
   
 } /* namespace */
