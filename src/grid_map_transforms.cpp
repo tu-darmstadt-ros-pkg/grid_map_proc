@@ -100,15 +100,31 @@ namespace grid_map_transforms{
       touchExplorationCell(grid_data,
                       expl_layer,
                       point(0)-1,
-                      point(1),
+                      point(1)-1,
                       current_val,
-                      adjacent_dist,
+                      diagonal_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
                       expl_layer,
                       point(0),
                       point(1)-1,
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1)-1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1),
                       current_val,
                       adjacent_dist,
                       point_queue);
@@ -123,35 +139,18 @@ namespace grid_map_transforms{
 
       touchExplorationCell(grid_data,
                       expl_layer,
+                      point(0)-1,
+                      point(1)+1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
                       point(0),
                       point(1)+1,
                       current_val,
                       adjacent_dist,
-                      point_queue);
-
-
-      touchExplorationCell(grid_data,
-                      expl_layer,
-                      point(0)-1,
-                      point(1)-1,
-                      current_val,
-                      diagonal_dist,
-                      point_queue);
-
-      touchExplorationCell(grid_data,
-                      expl_layer,
-                      point(0)+1,
-                      point(1)-1,
-                      current_val,
-                      diagonal_dist,
-                      point_queue);
-
-      touchExplorationCell(grid_data,
-                      expl_layer,
-                      point(0)-1,
-                      point(1)+1,
-                      current_val,
-                      diagonal_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -165,5 +164,139 @@ namespace grid_map_transforms{
 
     return true;
   }
+
+
+  bool collectReachableObstacleCells(grid_map::GridMap& grid_map,
+                                     const grid_map::Index& seed_point,
+                                     std::vector<grid_map::Index>& obstacle_cells,
+                                     std::vector<grid_map::Index>& frontier_cells,
+                                     std::string occupancy_layer,
+                                     std::string dist_seed_layer)
+  {
+
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    std::queue<grid_map::Index> point_queue;
+    point_queue.push(seed_point);
+
+    grid_map.add(dist_seed_layer, std::numeric_limits<float>::max());
+    grid_map::Matrix& expl_layer (grid_map[dist_seed_layer]);
+
+    expl_layer(seed_point(0), seed_point(1)) = 0.0;
+
+    size_t size_x_lim = grid_map.getSize()(0) -1;
+    size_t size_y_lim = grid_map.getSize()(1) -1;
+
+    float adjacent_dist = 0.955;
+    float diagonal_dist = 1.3693;
+
+    while (point_queue.size()){
+
+      grid_map::Index point (point_queue.front());
+      point_queue.pop();
+
+      //Reject points near border here early as to not require checks later
+      if (point(0) < 1 || point(0) >= size_x_lim ||
+          point(1) < 1 || point(1) >= size_y_lim){
+          continue;
+      }
+
+      float current_val = expl_layer(point(0), point(1));
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0)-1,
+                           point(1)-1,
+                           current_val,
+                           diagonal_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0),
+                           point(1)-1,
+                           current_val,
+                           adjacent_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0)+1,
+                           point(1)-1,
+                           current_val,
+                           diagonal_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0)-1,
+                           point(1),
+                           current_val,
+                           adjacent_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0)+1,
+                           point(1),
+                           current_val,
+                           adjacent_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0)-1,
+                           point(1)+1,
+                           current_val,
+                           diagonal_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0),
+                           point(1)+1,
+                           current_val,
+                           adjacent_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+
+      touchObstacleSearchCell(grid_data,
+                           expl_layer,
+                           point,
+                           point(0)+1,
+                           point(1)+1,
+                           current_val,
+                           diagonal_dist,
+                           obstacle_cells,
+                           frontier_cells,
+                           point_queue);
+    }
+
+    return true;
+  }
+
   
 } /* namespace */

@@ -61,17 +61,30 @@ namespace grid_map_path_planning{
       touchGradientCell(expl_data,
                              current_index,
                              current_index(0)-1,
-                             current_index(1),
+                             current_index(1)-1,
                              lowest_cost,
                              next_index);
-
-      //std::cout << "\n1stouchloop curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
 
 
       touchGradientCell(expl_data,
                              current_index,
-                             current_index(0)+1,
+                             current_index(0)-1,
                              current_index(1),
+                             lowest_cost,
+                             next_index);
+
+
+      touchGradientCell(expl_data,
+                             current_index,
+                             current_index(0)-1,
+                             current_index(1)+1,
+                             lowest_cost,
+                             next_index);
+
+      touchGradientCell(expl_data,
+                             current_index,
+                             current_index(0),
+                             current_index(1)-1,
                              lowest_cost,
                              next_index);
 
@@ -84,15 +97,7 @@ namespace grid_map_path_planning{
 
       touchGradientCell(expl_data,
                              current_index,
-                             current_index(0),
-                             current_index(1)-1,
-                             lowest_cost,
-                             next_index);
-
-
-      touchGradientCell(expl_data,
-                             current_index,
-                             current_index(0)-1,
+                             current_index(0)+1,
                              current_index(1)-1,
                              lowest_cost,
                              next_index);
@@ -100,7 +105,7 @@ namespace grid_map_path_planning{
       touchGradientCell(expl_data,
                              current_index,
                              current_index(0)+1,
-                             current_index(1)-1,
+                             current_index(1),
                              lowest_cost,
                              next_index);
 
@@ -111,12 +116,6 @@ namespace grid_map_path_planning{
                              lowest_cost,
                              next_index);
 
-      touchGradientCell(expl_data,
-                             current_index,
-                             current_index(0)-1,
-                             current_index(1)+1,
-                             lowest_cost,
-                             next_index);
 
       //std::cout << "\ncurr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
 
