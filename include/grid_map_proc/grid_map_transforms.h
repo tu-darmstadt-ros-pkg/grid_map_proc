@@ -61,8 +61,6 @@ namespace grid_map_transforms{
                          const grid_map::Index& current_point,
                          int idx_x,
                          int idx_y,
-                         float curr_val,
-                         float add_cost,
                          std::vector<grid_map::Index>& obstacle_cells,
                          std::vector<grid_map::Index>& frontier_cells,
                          std::queue<grid_map::Index>& point_queue)

@@ -74,13 +74,14 @@ namespace grid_map_transforms{
 
     std::vector<grid_map::Index> obstacle_cells;
     std::vector<grid_map::Index> frontier_cells;
+    obstacle_cells.reserve(2000);
+    frontier_cells.reserve(2000);
+
 
     collectReachableObstacleCells(grid_map,
                                   seed_point,
                                   obstacle_cells,
                                   frontier_cells);
-
-    std::cout << "obstacle_cells: " << obstacle_cells.size() << " frontier cells: " << frontier_cells.size() << "\n";
 
     for (size_t i = 0; i < obstacle_cells.size(); ++i){
       const grid_map::Index& point = obstacle_cells[i];
@@ -329,8 +330,6 @@ namespace grid_map_transforms{
                            point,
                            point(0)-1,
                            point(1)-1,
-                           current_val,
-                           diagonal_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -340,8 +339,6 @@ namespace grid_map_transforms{
                            point,
                            point(0),
                            point(1)-1,
-                           current_val,
-                           adjacent_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -351,8 +348,6 @@ namespace grid_map_transforms{
                            point,
                            point(0)+1,
                            point(1)-1,
-                           current_val,
-                           diagonal_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -362,8 +357,6 @@ namespace grid_map_transforms{
                            point,
                            point(0)-1,
                            point(1),
-                           current_val,
-                           adjacent_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -373,8 +366,6 @@ namespace grid_map_transforms{
                            point,
                            point(0)+1,
                            point(1),
-                           current_val,
-                           adjacent_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -384,8 +375,6 @@ namespace grid_map_transforms{
                            point,
                            point(0)-1,
                            point(1)+1,
-                           current_val,
-                           diagonal_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -395,8 +384,6 @@ namespace grid_map_transforms{
                            point,
                            point(0),
                            point(1)+1,
-                           current_val,
-                           adjacent_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
@@ -406,8 +393,6 @@ namespace grid_map_transforms{
                            point,
                            point(0)+1,
                            point(1)+1,
-                           current_val,
-                           diagonal_dist,
                            obstacle_cells,
                            frontier_cells,
                            point_queue);
