@@ -17,6 +17,11 @@ namespace grid_map_transforms{
                             std::string occupancy_layer = "occupancy",
                             std::string dist_trans_layer = "distance_transform");
 
+    bool addDistanceTransform(grid_map::GridMap& grid_map,
+                              const grid_map::Index& seed_point,
+                              std::string occupancy_layer = "occupancy",
+                              std::string dist_trans_layer = "distance_transform");
+
     bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
                             std::string occupancy_layer = "occupancy",
@@ -72,19 +77,19 @@ namespace grid_map_transforms{
         }
       // Occupied
       }else if (grid_map(idx_x, idx_y) == 100.0){
-        if (expl_trans_map(idx_x, idx_y) = -1.0){
+        if (expl_trans_map(idx_x, idx_y) == -1.0){
           return;
         }else{
           expl_trans_map(idx_x, idx_y) = -1.0;
-          frontier_cells.push_back(grid_map::Index(idx_x, idx_y));
+          obstacle_cells.push_back(grid_map::Index(idx_x, idx_y));
         }
       // Unknown
       }else{
-        if (expl_trans_map(current_point(0), current_point(1)) = -2.0){
+        if (expl_trans_map(current_point(0), current_point(1)) == -2.0){
           return;
         }else{
           expl_trans_map(current_point(0), current_point(1)) = -2.0;
-          frontier_cells.push_back(grid_map::Index(idx_x, idx_y));
+          frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
         }
       }
 

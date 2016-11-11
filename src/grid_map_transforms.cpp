@@ -57,6 +57,124 @@ namespace grid_map_transforms{
     return true;
   }
 
+  bool addDistanceTransform(grid_map::GridMap& grid_map,
+                            const grid_map::Index& seed_point,
+                            std::string occupancy_layer,
+                            std::string dist_trans_layer)
+  {
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    grid_map.add(dist_trans_layer, std::numeric_limits<float>::max());
+    grid_map::Matrix& expl_layer (grid_map[dist_trans_layer]);
+
+    std::queue<grid_map::Index> point_queue;
+
+    std::vector<grid_map::Index> obstacle_cells;
+    std::vector<grid_map::Index> frontier_cells;
+
+    collectReachableObstacleCells(grid_map,
+                                  seed_point,
+                                  obstacle_cells,
+                                  frontier_cells);
+
+    std::cout << "obstacle_cells: " << obstacle_cells.size() << " frontier cells: " << frontier_cells.size() << "\n";
+
+    for (size_t i = 0; i < obstacle_cells.size(); ++i){
+      const grid_map::Index& point = obstacle_cells[i];
+      expl_layer(point(0), point(1)) = 0.0;
+      point_queue.push(point);
+    }
+
+    size_t size_x_lim = grid_map.getSize()(0) -1;
+    size_t size_y_lim = grid_map.getSize()(1) -1;
+
+    float adjacent_dist = 0.955;
+    float diagonal_dist = 1.3693;
+
+    while (point_queue.size()){
+      grid_map::Index point (point_queue.front());
+      point_queue.pop();
+
+      //Reject points near border here early as to not require checks later
+      if (point(0) < 1 || point(0) >= size_x_lim ||
+          point(1) < 1 || point(1) >= size_y_lim){
+          continue;
+      }
+
+      float current_val = expl_layer(point(0), point(1));
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1)-1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0),
+                      point(1)-1,
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1)-1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1),
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1),
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)-1,
+                      point(1)+1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0),
+                      point(1)+1,
+                      current_val,
+                      adjacent_dist,
+                      point_queue);
+
+      touchExplorationCell(grid_data,
+                      expl_layer,
+                      point(0)+1,
+                      point(1)+1,
+                      current_val,
+                      diagonal_dist,
+                      point_queue);
+    }
+
+    return true;
+
+  }
+
   bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
                             std::string occupancy_layer,
