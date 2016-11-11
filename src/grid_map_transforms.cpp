@@ -7,8 +7,8 @@ namespace grid_map_transforms{
   
   
   bool addDistanceTransformCv(grid_map::GridMap& grid_map,
-                              std::string occupancy_layer,
-                              std::string dist_trans_layer)
+                              const std::string occupancy_layer,
+                              const std::string dist_trans_layer)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
@@ -59,8 +59,8 @@ namespace grid_map_transforms{
 
   bool addDistanceTransform(grid_map::GridMap& grid_map,
                             const grid_map::Index& seed_point,
-                            std::string occupancy_layer,
-                            std::string dist_trans_layer)
+                            const std::string occupancy_layer,
+                            const std::string dist_trans_layer)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
@@ -107,7 +107,7 @@ namespace grid_map_transforms{
 
       float current_val = expl_layer(point(0), point(1));
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0)-1,
                       point(1)-1,
@@ -115,7 +115,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0),
                       point(1)-1,
@@ -123,7 +123,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0)+1,
                       point(1)-1,
@@ -131,7 +131,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0)-1,
                       point(1),
@@ -139,7 +139,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0)+1,
                       point(1),
@@ -147,7 +147,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0)-1,
                       point(1)+1,
@@ -155,7 +155,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0),
                       point(1)+1,
@@ -163,7 +163,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       point_queue);
 
-      touchExplorationCell(grid_data,
+      touchDistCell(grid_data,
                       expl_layer,
                       point(0)+1,
                       point(1)+1,
@@ -178,14 +178,18 @@ namespace grid_map_transforms{
 
   bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
-                            std::string occupancy_layer,
-                            std::string dist_trans_layer,
-                            std::string expl_trans_layer)
+                            const std::string occupancy_layer,
+                            const std::string dist_trans_layer,
+                            const std::string expl_trans_layer)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
 
-    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+    if (!grid_map.exists(dist_trans_layer))
+      return false;
+
+    const grid_map::Matrix& grid_data (grid_map[occupancy_layer]);
+    const grid_map::Matrix& dist_data (grid_map[dist_trans_layer]);
 
     grid_map.add(expl_trans_layer, std::numeric_limits<float>::max());
     grid_map::Matrix& expl_layer (grid_map[expl_trans_layer]);
@@ -217,6 +221,7 @@ namespace grid_map_transforms{
       float current_val = expl_layer(point(0), point(1));
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0)-1,
                       point(1)-1,
@@ -225,6 +230,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0),
                       point(1)-1,
@@ -233,6 +239,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0)+1,
                       point(1)-1,
@@ -241,6 +248,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0)-1,
                       point(1),
@@ -249,6 +257,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0)+1,
                       point(1),
@@ -257,6 +266,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0)-1,
                       point(1)+1,
@@ -265,6 +275,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0),
                       point(1)+1,
@@ -273,6 +284,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchExplorationCell(grid_data,
+                      dist_data,
                       expl_layer,
                       point(0)+1,
                       point(1)+1,
@@ -289,8 +301,8 @@ namespace grid_map_transforms{
                                      const grid_map::Index& seed_point,
                                      std::vector<grid_map::Index>& obstacle_cells,
                                      std::vector<grid_map::Index>& frontier_cells,
-                                     std::string occupancy_layer,
-                                     std::string dist_seed_layer)
+                                     const std::string occupancy_layer,
+                                     const std::string dist_seed_layer)
   {
 
     if (!grid_map.exists(occupancy_layer))

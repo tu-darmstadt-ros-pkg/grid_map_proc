@@ -14,34 +14,35 @@
 namespace grid_map_transforms{
 
     bool addDistanceTransformCv(grid_map::GridMap& grid_map,
-                            std::string occupancy_layer = "occupancy",
-                            std::string dist_trans_layer = "distance_transform");
+                            const std::string occupancy_layer = "occupancy",
+                            const std::string dist_trans_layer = "distance_transform");
 
     bool addDistanceTransform(grid_map::GridMap& grid_map,
                               const grid_map::Index& seed_point,
-                              std::string occupancy_layer = "occupancy",
-                              std::string dist_trans_layer = "distance_transform");
+                              const std::string occupancy_layer = "occupancy",
+                              const std::string dist_trans_layer = "distance_transform");
 
     bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
-                            std::string occupancy_layer = "occupancy",
-                            std::string dist_trans_layer = "distance_transform",
-                            std::string expl_trans_layer = "exploration_transform");
+                            const std::string occupancy_layer = "occupancy",
+                            const std::string dist_trans_layer = "distance_transform",
+                            const std::string expl_trans_layer = "exploration_transform");
 
 
     bool collectReachableObstacleCells(grid_map::GridMap& grid_map,
                                        const grid_map::Index& seed_point,
                                        std::vector<grid_map::Index>& obstacle_cells,
                                        std::vector<grid_map::Index>& frontier_cells,
-                                       std::string occupancy_layer = "occupancy",
-                                       std::string dist_seed_layer = "dist_seed_transform");
+                                       const std::string occupancy_layer = "occupancy",
+                                       const std::string dist_seed_layer = "dist_seed_transform");
 
-    void touchExplorationCell(grid_map::Matrix& grid_map,
+    void touchExplorationCell(const grid_map::Matrix& grid_map,
+                              const grid_map::Matrix& dist_map,
                          grid_map::Matrix& expl_trans_map,
-                         int idx_x,
-                         int idx_y,
-                         float curr_val,
-                         float add_cost,
+                         const int idx_x,
+                         const int idx_y,
+                         const float curr_val,
+                         const float add_cost,
                          std::queue<grid_map::Index>& point_queue)
     {
       //If not free at cell, return right away
@@ -56,11 +57,31 @@ namespace grid_map_transforms{
       }
     }
 
-    void touchObstacleSearchCell(grid_map::Matrix& grid_map,
+    void touchDistCell(const grid_map::Matrix& grid_map,
+                         grid_map::Matrix& expl_trans_map,
+                         const int idx_x,
+                         const int idx_y,
+                         const float curr_val,
+                         const float add_cost,
+                         std::queue<grid_map::Index>& point_queue)
+    {
+      //If not free at cell, return right away
+      if (grid_map(idx_x, idx_y) != 0)
+        return;
+
+      float cost = curr_val + add_cost;
+
+      if (expl_trans_map(idx_x, idx_y) > cost){
+        expl_trans_map(idx_x, idx_y) = cost;
+        point_queue.push(grid_map::Index(idx_x, idx_y));
+      }
+    }
+
+    void touchObstacleSearchCell(const grid_map::Matrix& grid_map,
                          grid_map::Matrix& expl_trans_map,
                          const grid_map::Index& current_point,
-                         int idx_x,
-                         int idx_y,
+                         const int idx_x,
+                         const int idx_y,
                          std::vector<grid_map::Index>& obstacle_cells,
                          std::vector<grid_map::Index>& frontier_cells,
                          std::queue<grid_map::Index>& point_queue)
