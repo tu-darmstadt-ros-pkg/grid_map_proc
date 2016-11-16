@@ -150,6 +150,20 @@ namespace grid_map_path_planning{
 
       pose.position.x = position(0);
       pose.position.y = position(1);
+
+      if (i < path_indices.size()-1){
+        float yaw = std::atan2(path_indices[i+1](1)-path_indices[i](1),
+                               path_indices[i+1](0)-path_indices[i](0));
+
+        pose.orientation.z = sin(yaw*0.5f);
+        pose.orientation.w = cos(yaw*0.5f);
+        std::cout << "bla";
+      }else{
+        const geometry_msgs::Pose& prior_pose = path[i-1].pose;
+
+        pose.orientation = prior_pose.orientation;
+      }
+
       pose.orientation.w = 1.0;
 
     }
