@@ -9,8 +9,9 @@ namespace grid_map_path_planning{
   bool findPathExplorationTransform(grid_map::GridMap& grid_map,
                                     const geometry_msgs::Pose& start_pose,
                                     std::vector<geometry_msgs::PoseStamped>& path,
-                                    std::string occupancy_layer,
-                                    std::string expl_trans_layer)
+                                    const std::string occupancy_layer,
+                                    const std::string dist_trans_layer,
+                                    const std::string expl_trans_layer)
   {
 
     grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
@@ -40,6 +41,8 @@ namespace grid_map_path_planning{
     //trajPoint.header.frame_id = global_frame;
 
     //std::cout << "\nStart curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
+    grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
 
 
     while(!expl_data(current_index(0), current_index(1)) == 0.0)
@@ -129,7 +132,10 @@ namespace grid_map_path_planning{
       //std::cin >> bla;
 
       current_index = next_index;
-      path_indices.push_back(current_index);
+
+      if ((dist_data(current_index(0), current_index(1)) <= 12.0) || expl_data(current_index(0), current_index(1)) == 0.0){
+        path_indices.push_back(current_index);
+      }
     }
 
     //path.header.frame_id = "map";
@@ -148,6 +154,45 @@ namespace grid_map_path_planning{
 
     }
 
+    return true;
+  }
+
+  bool shortCutPath(grid_map::GridMap& grid_map,
+                    const std::vector <grid_map::Index>& path_in,
+                    std::vector <grid_map::Index>& path_out,
+                    const std::string dist_trans_layer,
+                    const std::string expl_trans_layer)
+  {
+    if (path_in.empty())
+      return false;
+
+    grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
+    grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
+
+    path_out.reserve(path_in.size());
+    path_out.push_back(path_in[0]);
+
+    size_t idx = 0;
+
+    while (idx < path_in.size()){
+      const grid_map::Index& anchor (path_in[idx]);
+
+      if (dist_data(anchor(0), anchor(1)) > 12.0){
+        ++idx;
+        grid_map::Index test_point = path_in[idx];
+
+        while (dist_data(test_point(0), test_point(1) > 12.0)){
+          idx++;
+          test_point = path_in[idx];
+        }
+
+        path_out.push_back(test_point);
+        ++idx;
+      }else{
+        path_out.push_back(anchor);
+        ++idx;
+      }
+    };
     return true;
   }
   

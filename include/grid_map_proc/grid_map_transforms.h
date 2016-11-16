@@ -49,7 +49,21 @@ namespace grid_map_transforms{
       if (grid_map(idx_x, idx_y) != 0)
         return;
 
+
+      float dist = dist_map(idx_x, idx_y);
+
+      if (dist < 6.0)
+        return;
+
       float cost = curr_val + add_cost;
+
+      //if (dist < 20.0){
+      //  cost += 1.0 * std::pow((20.0 - dist_map(idx_x, idx_y)), 2);
+      //}
+      if (dist < 12.0){
+        float add_cost = (12.0 - dist);
+        cost += add_cost * add_cost;
+      }
 
       if (expl_trans_map(idx_x, idx_y) > cost){
         expl_trans_map(idx_x, idx_y) = cost;
