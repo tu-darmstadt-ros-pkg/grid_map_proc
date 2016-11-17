@@ -133,10 +133,26 @@ namespace grid_map_path_planning{
 
       current_index = next_index;
 
-      if ((dist_data(current_index(0), current_index(1)) <= 12.0) || expl_data(current_index(0), current_index(1)) == 0.0){
-        path_indices.push_back(current_index);
-      }
+      //if ((dist_data(current_index(0), current_index(1)) < 12.0) || expl_data(current_index(0), current_index(1)) == 0.0){
+      //  path_indices.push_back(current_index);
+      //  std::cout << "add: " << dist_data(current_index(0), current_index(1)) << "\n";
+      //}else{
+      //  std::cout << "rem: " << dist_data(current_index(0), current_index(1)) << "\n";
+      //}
+
+      path_indices.push_back(current_index);
     }
+
+    if (path_indices.size() == 1)
+    {
+      //Already at start
+    }
+
+    std::vector <grid_map::Index> refined_path_indices;
+
+    shortCutPath(grid_map, path_indices, refined_path_indices);
+
+    path_indices = refined_path_indices;
 
     //path.header.frame_id = "map";
     //path.header.stamp = ros::Time::now();
@@ -152,19 +168,16 @@ namespace grid_map_path_planning{
       pose.position.y = position(1);
 
       if (i < path_indices.size()-1){
-        float yaw = std::atan2(path_indices[i+1](1)-path_indices[i](1),
-                               path_indices[i+1](0)-path_indices[i](0));
+        float yaw = std::atan2(path_indices[i](1)-path_indices[i+1](1),
+                               path_indices[i](0)-path_indices[i+1](0));
 
         pose.orientation.z = sin(yaw*0.5f);
         pose.orientation.w = cos(yaw*0.5f);
-        std::cout << "bla";
       }else{
         const geometry_msgs::Pose& prior_pose = path[i-1].pose;
 
         pose.orientation = prior_pose.orientation;
       }
-
-      pose.orientation.w = 1.0;
 
     }
 
@@ -177,8 +190,10 @@ namespace grid_map_path_planning{
                     const std::string dist_trans_layer,
                     const std::string expl_trans_layer)
   {
-    if (path_in.empty())
-      return false;
+    if (path_in.size() < 2){
+      path_out = path_in;
+      return true;
+    }
 
     grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
     grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
@@ -188,25 +203,32 @@ namespace grid_map_path_planning{
 
     size_t idx = 0;
 
-    while (idx < path_in.size()){
-      const grid_map::Index& anchor (path_in[idx]);
+    while (idx < path_in.size()-2){
+      //std::cout << "idx: " << idx << " size: " << path_in.size() <<  "\n";
+      const grid_map::Index& current_index (path_in[idx]);
 
-      if (dist_data(anchor(0), anchor(1)) > 12.0){
-        ++idx;
-        grid_map::Index test_point = path_in[idx];
+      //if (idx >= path_in.size()-30)
+      //  break;
+      //if ((idx + 2) > (path_in.size() -10))
+      //  break;
 
-        while (dist_data(test_point(0), test_point(1) > 12.0)){
-          idx++;
-          test_point = path_in[idx];
+      for (size_t test_idx = idx + 2; test_idx < path_in.size(); ++test_idx){
+        const grid_map::Index& test_index = path_in[test_idx];
+
+        //std::cout << "idx: " << idx << " test_idx: " << test_idx << " size: " << path_in.size() << " \n";
+        if (!shortCutValid(grid_map, dist_data, current_index, test_index)){
+          idx = test_idx-1;
+          break;
+        }else{
+          if (test_idx == (path_in.size()-1)){
+            idx = test_idx;
+            break;
+          }
         }
-
-        path_out.push_back(test_point);
-        ++idx;
-      }else{
-        path_out.push_back(anchor);
-        ++idx;
       }
-    };
+
+      path_out.push_back(path_in[idx]);
+    }
     return true;
   }
   
