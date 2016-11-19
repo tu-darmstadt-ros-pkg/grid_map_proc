@@ -59,6 +59,8 @@ namespace grid_map_transforms{
 
   bool addDistanceTransform(grid_map::GridMap& grid_map,
                             const grid_map::Index& seed_point,
+                            std::vector<grid_map::Index>& obstacle_cells,
+                            std::vector<grid_map::Index>& frontier_cells,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer)
   {
@@ -72,10 +74,8 @@ namespace grid_map_transforms{
 
     std::queue<grid_map::Index> point_queue;
 
-    std::vector<grid_map::Index> obstacle_cells;
-    std::vector<grid_map::Index> frontier_cells;
-    obstacle_cells.reserve(2000);
-    frontier_cells.reserve(2000);
+    obstacle_cells.clear();
+    frontier_cells.clear();
 
 
     collectReachableObstacleCells(grid_map,
@@ -207,6 +207,8 @@ namespace grid_map_transforms{
 
     float adjacent_dist = 0.955;
     float diagonal_dist = 1.3693;
+
+    //std::cout << "pq size:" << point_queue.size() << "\n";
 
     while (point_queue.size()){
       grid_map::Index point (point_queue.front());
@@ -409,6 +411,8 @@ namespace grid_map_transforms{
                            frontier_cells,
                            point_queue);
     }
+
+    //std::cout << "o: " << obstacle_cells.size() << " f: " << frontier_cells.size() << "\n";
 
     return true;
   }

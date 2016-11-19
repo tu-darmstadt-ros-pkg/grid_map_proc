@@ -19,6 +19,8 @@ namespace grid_map_transforms{
 
     bool addDistanceTransform(grid_map::GridMap& grid_map,
                               const grid_map::Index& seed_point,
+                              std::vector<grid_map::Index>& obstacle_cells,
+                              std::vector<grid_map::Index>& frontier_cells,
                               const std::string occupancy_layer = "occupancy",
                               const std::string dist_trans_layer = "distance_transform");
 
