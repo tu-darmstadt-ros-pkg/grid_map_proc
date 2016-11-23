@@ -9,6 +9,7 @@ namespace grid_map_path_planning{
   bool findPathExplorationTransform(grid_map::GridMap& grid_map,
                                     const geometry_msgs::Pose& start_pose,
                                     std::vector<geometry_msgs::PoseStamped>& path,
+                                    float* path_cost,
                                     const std::string occupancy_layer,
                                     const std::string dist_trans_layer,
                                     const std::string expl_trans_layer)
@@ -43,6 +44,10 @@ namespace grid_map_path_planning{
     //std::cout << "\nStart curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
 
     grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
+
+    if (path_cost){
+      *path_cost = expl_data(current_index(0), current_index(1));
+    }
 
 
     while(!expl_data(current_index(0), current_index(1)) == 0.0)
