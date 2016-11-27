@@ -66,26 +66,11 @@ namespace grid_map_path_planning{
 
       float lowest_cost = std::numeric_limits<float>::min();
 
-      touchGradientCell(expl_data,
-                             current_index,
-                             current_index(0)-1,
-                             current_index(1)-1,
-                             lowest_cost,
-                             next_index);
-
 
       touchGradientCell(expl_data,
                              current_index,
                              current_index(0)-1,
                              current_index(1),
-                             lowest_cost,
-                             next_index);
-
-
-      touchGradientCell(expl_data,
-                             current_index,
-                             current_index(0)-1,
-                             current_index(1)+1,
                              lowest_cost,
                              next_index);
 
@@ -106,14 +91,28 @@ namespace grid_map_path_planning{
       touchGradientCell(expl_data,
                              current_index,
                              current_index(0)+1,
+                             current_index(1),
+                             lowest_cost,
+                             next_index);
+
+      touchGradientCell(expl_data,
+                             current_index,
+                             current_index(0)-1,
                              current_index(1)-1,
                              lowest_cost,
                              next_index);
 
       touchGradientCell(expl_data,
                              current_index,
+                             current_index(0)-1,
+                             current_index(1)+1,
+                             lowest_cost,
+                             next_index);
+
+      touchGradientCell(expl_data,
+                             current_index,
                              current_index(0)+1,
-                             current_index(1),
+                             current_index(1)-1,
                              lowest_cost,
                              next_index);
 
@@ -132,10 +131,6 @@ namespace grid_map_path_planning{
         return false;
       }
 
-      //std::cout << "enter dat\n";
-      //int bla;
-      //std::cin >> bla;
-
       current_index = next_index;
 
       //if ((dist_data(current_index(0), current_index(1)) < 12.0) || expl_data(current_index(0), current_index(1)) == 0.0){
@@ -147,6 +142,8 @@ namespace grid_map_path_planning{
 
       path_indices.push_back(current_index);
     }
+
+    //std::cout << "current_index after path gen: " << current_index << "\n";
 
     if (path_indices.size() == 1)
     {
@@ -172,7 +169,7 @@ namespace grid_map_path_planning{
       pose.position.x = position(0);
       pose.position.y = position(1);
 
-      if (i < path_indices.size()-1){
+      if (i < (path_indices.size()-1)){
         float yaw = std::atan2(path_indices[i](1)-path_indices[i+1](1),
                                path_indices[i](0)-path_indices[i+1](0));
 
@@ -232,8 +229,15 @@ namespace grid_map_path_planning{
         }
       }
 
+      //std::cout << "size: " << path_in.size() << " idx: " << idx << "\n";
+
       path_out.push_back(path_in[idx]);
     }
+
+    if (idx < path_in.size()){
+      path_out.push_back(path_in.back());
+    }
+
     return true;
   }
   
