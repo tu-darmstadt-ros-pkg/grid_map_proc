@@ -26,6 +26,8 @@ namespace grid_map_transforms{
 
     bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
+                            const float lethal_dist = 6.0,
+                            const float penalty_dist = 12.0,
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform",
                             const std::string expl_trans_layer = "exploration_transform");
@@ -45,6 +47,8 @@ namespace grid_map_transforms{
                          const int idx_y,
                          const float curr_val,
                          const float add_cost,
+                         const float lethal_dist,
+                         const float penalty_dist,
                          std::queue<grid_map::Index>& point_queue)
     {
       //If not free at cell, return right away
@@ -54,7 +58,7 @@ namespace grid_map_transforms{
 
       float dist = dist_map(idx_x, idx_y);
 
-      if (dist < 6.0)
+      if (dist < lethal_dist)
         return;
 
       float cost = curr_val + add_cost;
@@ -62,8 +66,8 @@ namespace grid_map_transforms{
       //if (dist < 20.0){
       //  cost += 1.0 * std::pow((20.0 - dist_map(idx_x, idx_y)), 2);
       //}
-      if (dist < 12.0){
-        float add_cost = (12.0 - dist);
+      if (dist < penalty_dist){
+        float add_cost = (penalty_dist - dist);
         cost += add_cost * add_cost;
       }
 

@@ -186,6 +186,160 @@ namespace grid_map_path_planning{
     return true;
   }
 
+  bool findValidClosePoseExplorationTransform(grid_map::GridMap& grid_map,
+                          const grid_map::Index& start_index,
+                          grid_map::Index& adjusted_index,
+                          const float allowed_distance_from_start,
+                          const float required_final_distance,
+                          const float desired_final_distance,
+                          const std::string occupancy_layer,
+                          const std::string dist_trans_layer,
+                          const std::string expl_trans_layer)
+  {
+    //grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
+
+    grid_map::Index current_index;
+    grid_map::Index next_index;
+
+    //if (!grid_map.getIndex(grid_map::Position(start_index[0], start_index[1]),current_index)){
+    //  ROS_WARN("Start index not in map");
+    //  return false;
+    //}
+
+    current_index = start_index;
+
+    //if (expl_data(current_index(0), current_index(1)) == std::numeric_limits<float>::max()){
+    //  ROS_WARN("Start index not in exploration transform");
+    //  return false;
+    //}
+
+    std::vector <grid_map::Index> path_indices;
+    path_indices.push_back(current_index);
+
+    // Cost can be looked up from start pose
+    //float path_cost_sum;
+
+
+    //geometry_msgs::PoseStamped trajPoint;
+    //std::string global_frame = costmap_ros_->getGlobalFrameID();
+    //trajPoint.header.frame_id = global_frame;
+
+    //std::cout << "\nStart curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
+    grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
+
+    float dist_from_start = 0.0f;
+
+
+    bool abort = false;
+
+    while(!abort)
+    {
+
+      // We guarantee in construction of expl. transform that we're not
+      // at the border.
+      //if (point(0) < 1 || point(0) >= size_x_lim ||
+      //    point(1) < 1 || point(1) >= size_y_lim){
+      //    continue;
+      //}
+
+      //std::cout << "\nStartloop curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
+
+
+      float highest_cost = std::numeric_limits<float>::min();
+
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0)-1,
+                             current_index(1),
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0),
+                             current_index(1)-1,
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0),
+                             current_index(1)+1,
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0)+1,
+                             current_index(1),
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0)-1,
+                             current_index(1)-1,
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0)-1,
+                             current_index(1)+1,
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0)+1,
+                             current_index(1)-1,
+                             highest_cost,
+                             next_index);
+
+      touchDistanceField(dist_data,
+                             current_index,
+                             current_index(0)+1,
+                             current_index(1)+1,
+                             highest_cost,
+                             next_index);
+
+
+      //std::cout << "\ncurr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+
+      if (highest_cost == std::numeric_limits<float>::min()){
+
+
+        if (dist_data(current_index[0], current_index[1]) < required_final_distance){
+          ROS_WARN("Could not find gradient of distance transform leading to free area");
+          return false;
+        }else if (dist_data(current_index[0], current_index[1]) < desired_final_distance){
+          ROS_WARN("Could not find gradient of distance transform reaching final distance");
+          abort = true;
+        }else{
+          ROS_INFO("Moved out of desired distance");
+          abort = true;
+        }
+
+
+      }else{
+
+        dist_from_start += highest_cost;
+
+        current_index = next_index;
+
+        path_indices.push_back(current_index);
+      }
+    }
+
+    adjusted_index = current_index;
+
+
+    return true;
+  }
+
   bool shortCutPath(grid_map::GridMap& grid_map,
                     const std::vector <grid_map::Index>& path_in,
                     std::vector <grid_map::Index>& path_out,

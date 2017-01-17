@@ -178,6 +178,8 @@ namespace grid_map_transforms{
 
   bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
+                            const float lethal_dist,
+                            const float penalty_dist,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer,
                             const std::string expl_trans_layer)
@@ -229,6 +231,8 @@ namespace grid_map_transforms{
                       point(1)-1,
                       current_val,
                       diagonal_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -238,6 +242,8 @@ namespace grid_map_transforms{
                       point(1)-1,
                       current_val,
                       adjacent_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -247,6 +253,8 @@ namespace grid_map_transforms{
                       point(1)-1,
                       current_val,
                       diagonal_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -256,6 +264,8 @@ namespace grid_map_transforms{
                       point(1),
                       current_val,
                       adjacent_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -265,6 +275,8 @@ namespace grid_map_transforms{
                       point(1),
                       current_val,
                       adjacent_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -274,6 +286,8 @@ namespace grid_map_transforms{
                       point(1)+1,
                       current_val,
                       diagonal_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -283,6 +297,8 @@ namespace grid_map_transforms{
                       point(1)+1,
                       current_val,
                       adjacent_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -292,6 +308,8 @@ namespace grid_map_transforms{
                       point(1)+1,
                       current_val,
                       diagonal_dist,
+                      lethal_dist,
+                      penalty_dist,
                       point_queue);
     }
 
