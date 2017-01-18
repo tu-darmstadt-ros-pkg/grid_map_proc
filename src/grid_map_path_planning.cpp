@@ -231,6 +231,15 @@ namespace grid_map_path_planning{
     float dist_from_start = 0.0f;
 
 
+    float dist_from_obstacle = dist_data(current_index(0), current_index(1));
+
+    if (dist_from_obstacle >= desired_final_distance){
+      ROS_INFO("Pose already in free space, not modifying");
+      adjusted_index = start_index;
+      return true;
+    }
+
+
     bool abort = false;
 
     while(!abort)
@@ -247,7 +256,7 @@ namespace grid_map_path_planning{
 
 
 
-      float highest_cost = std::numeric_limits<float>::min();
+      float highest_cost = 0.0f;
 
 
       touchDistanceField(dist_data,
@@ -307,30 +316,49 @@ namespace grid_map_path_planning{
                              next_index);
 
 
-      //std::cout << "\ncurr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
+      dist_from_obstacle = dist_data(current_index(0), current_index(1));
 
-      if (highest_cost == std::numeric_limits<float>::min()){
+      std::cout << "curr_index: " << current_index << "\ndist_from_obstacle: " << dist_from_obstacle << "dist_from_start: " << dist_from_start << " highest cost: " << highest_cost << "\n";
 
+      // If gradient could not be followed..
+      if (highest_cost == 0.0f){
 
-        if (dist_data(current_index[0], current_index[1]) < required_final_distance){
-          ROS_WARN("Could not find gradient of distance transform leading to free area");
+        std::cout << "curr_index: " << current_index << "\nval: " << dist_data(current_index(0), current_index(1)) << "dist_from_start: " << dist_from_start << " highest cost: " << highest_cost << "\n";
+
+        //ROS_INFO_STREAM("Reached end of distance transform with dist_from_start)
+
+        // Could not reach enough clearance
+        if (dist_from_obstacle < required_final_distance){
+          ROS_WARN("Could not find gradient of distance transform leading to free area, returning original pose");
+          adjusted_index = start_index;
           return false;
-        }else if (dist_data(current_index[0], current_index[1]) < desired_final_distance){
-          ROS_WARN("Could not find gradient of distance transform reaching final distance");
+
+        // Could not reach desired distance from obstacles, but enough clearance
+        }else if (dist_from_obstacle < desired_final_distance){
+          ROS_WARN("Could not find gradient of distance transform reaching desired final distance");
           abort = true;
+
         }else{
-          ROS_INFO("Moved out of desired distance");
+          ROS_INFO("Reached final distance");
           abort = true;
         }
 
-
+      // Gradient following worked
       }else{
 
-        dist_from_start += highest_cost;
+        //dist_from_start += highest_cost;
 
-        current_index = next_index;
+        // If desired distance exceeded, stop here
+        if (dist_from_obstacle > desired_final_distance){
+          abort = true;
 
-        path_indices.push_back(current_index);
+        // Otherwise continue gradient following
+        }else{
+
+          current_index = next_index;
+          dist_from_start += highest_cost;
+          path_indices.push_back(current_index);
+        }
       }
     }
 
