@@ -186,7 +186,53 @@ namespace grid_map_path_planning{
     return true;
   }
 
-  bool findValidClosePoseExplorationTransform(grid_map::GridMap& grid_map,
+  bool adjustStartPoseIfOccupied(const grid_map::GridMap& grid_map,
+                                 const geometry_msgs::Pose& start_pose,
+                                 geometry_msgs::Pose& revised_start_pose,
+                                 const std::string occupancy_layer,
+                                 const std::string dist_trans_layer,
+                                 const std::string expl_trans_layer)
+  {
+    const grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
+
+    grid_map::Index current_index;
+
+    if (!grid_map.getIndex(grid_map::Position(start_pose.position.x, start_pose.position.y),current_index)){
+      ROS_WARN("Start index not in map");
+      return false;
+    }
+
+    if (expl_data(current_index(0), current_index(1)) != std::numeric_limits<float>::max()){
+      ROS_INFO("Pose valid, not modifying");
+      revised_start_pose = start_pose;
+
+    }else{
+
+      grid_map::Index adjusted_index;
+
+
+      findValidClosePoseExplorationTransform(grid_map,
+                                             current_index,
+                                             adjusted_index,
+                                             3.0,
+                                             6.0,
+                                             6.0);
+
+      grid_map::Position adjusted_position;
+
+      grid_map.getPosition(adjusted_index, adjusted_position);
+
+      revised_start_pose = start_pose;
+
+      revised_start_pose.position.x = adjusted_position[0];
+      revised_start_pose.position.y = adjusted_position[1];
+      ROS_INFO("Adjusted start pose");
+    }
+
+    return true;
+  }
+
+  bool findValidClosePoseExplorationTransform(const grid_map::GridMap& grid_map,
                           const grid_map::Index& start_index,
                           grid_map::Index& adjusted_index,
                           const float allowed_distance_from_start,
@@ -226,7 +272,7 @@ namespace grid_map_path_planning{
 
     //std::cout << "\nStart curr_index:\n" << current_index << "\nval: " << expl_data(current_index(0), current_index(1)) << "\n";
 
-    grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
+    const grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
 
     float dist_from_start = 0.0f;
 
@@ -234,7 +280,7 @@ namespace grid_map_path_planning{
     float dist_from_obstacle = dist_data(current_index(0), current_index(1));
 
     if (dist_from_obstacle >= desired_final_distance){
-      ROS_INFO("Pose already in free space, not modifying");
+      ROS_INFO("Pose already farther than desired distance from next obstacle, not modifying");
       adjusted_index = start_index;
       return true;
     }
@@ -318,12 +364,12 @@ namespace grid_map_path_planning{
 
       dist_from_obstacle = dist_data(current_index(0), current_index(1));
 
-      std::cout << "curr_index: " << current_index << "\ndist_from_obstacle: " << dist_from_obstacle << "dist_from_start: " << dist_from_start << " highest cost: " << highest_cost << "\n";
+      //std::cout << "curr_index: " << current_index << "\ndist_from_obstacle: " << dist_from_obstacle << "dist_from_start: " << dist_from_start << " highest cost: " << highest_cost << "\n";
 
       // If gradient could not be followed..
       if (highest_cost == 0.0f){
 
-        std::cout << "curr_index: " << current_index << "\nval: " << dist_data(current_index(0), current_index(1)) << "dist_from_start: " << dist_from_start << " highest cost: " << highest_cost << "\n";
+        //std::cout << "curr_index: " << current_index << "\nval: " << dist_data(current_index(0), current_index(1)) << "dist_from_start: " << dist_from_start << " highest cost: " << highest_cost << "\n";
 
         //ROS_INFO_STREAM("Reached end of distance transform with dist_from_start)
 

@@ -22,8 +22,16 @@ namespace grid_map_path_planning{
                             const std::string dist_trans_layer = "distance_transform",
                             const std::string expl_trans_layer = "exploration_transform");
 
+    bool adjustStartPoseIfOccupied(const grid_map::GridMap& grid_map,
+                                   const geometry_msgs::Pose& start_pose,
+                                   geometry_msgs::Pose& revised_start_pose,
+                                   const std::string occupancy_layer = "occupancy",
+                                   const std::string dist_trans_layer = "distance_transform",
+                                   const std::string expl_trans_layer = "exploration_transform");
 
-    bool findValidClosePoseExplorationTransform(grid_map::GridMap& grid_map,
+
+
+    bool findValidClosePoseExplorationTransform(const grid_map::GridMap& grid_map,
                             const grid_map::Index& start_index,
                             grid_map::Index& adjusted_index,
                             const float allowed_distance_from_start = 3.0,
@@ -33,7 +41,6 @@ namespace grid_map_path_planning{
                             const std::string dist_trans_layer = "distance_transform",
                             const std::string expl_trans_layer = "exploration_transform");
 
-    // @TODO Unused, possibly remove
     bool shortCutPath(grid_map::GridMap& grid_map,
                       const std::vector <grid_map::Index>& path_in,
                       std::vector <grid_map::Index>& path_out,
