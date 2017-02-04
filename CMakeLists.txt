@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES grid_map_proc
-#  CATKIN_DEPENDS eigen_conversions geometry_msgs grid_map_core grid_map_msgs grid_map_ros roscpp tf
+  CATKIN_DEPENDS eigen_conversions geometry_msgs grid_map_core grid_map_msgs grid_map_ros roscpp tf
 #  DEPENDS system_lib
 )
 

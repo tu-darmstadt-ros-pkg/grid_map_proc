@@ -18,6 +18,10 @@
 
 namespace grid_map_polygon_tools{
   
+
+  grid_map::Polygon fromRosPoints(std::vector<geometry_msgs::Point> points);
+
+
   // Symmetric polygon around footprint
   void setFootprintPoly(const double footprint_x, const double footprint_y, grid_map::Polygon& poly, const std::string& frame_id = "base_link");
   

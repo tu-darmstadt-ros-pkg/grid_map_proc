@@ -5,6 +5,19 @@
 #include <nav_msgs/Path.h>
 
 namespace grid_map_polygon_tools{
+
+  grid_map::Polygon fromRosPoints(std::vector<geometry_msgs::Point> points)
+  {
+    grid_map::Polygon polygon;
+
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+      polygon.addVertex(grid_map::Position(points[i].x, points[i].y));
+
+    }
+
+    return polygon;
+  }
   
   
   void setFootprintPoly(const double footprint_x, const double footprint_y, grid_map::Polygon& poly, const std::string& frame_id)
