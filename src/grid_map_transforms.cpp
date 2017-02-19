@@ -4,6 +4,65 @@
 #include <opencv2/highgui/highgui.hpp>
 
 namespace grid_map_transforms{
+
+  bool addInflatedLayer(grid_map::GridMap& grid_map,
+                                     const float inflation_radius_map_cells,
+                                     const std::string occupancy_layer,
+                                     const std::string inflated_occupancy_layer)
+  {
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    cv::Mat map_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+
+    uchar *input = (uchar*)(map_mat.data);
+
+    size_t size_x = grid_map.getSize()(0);
+    size_t size_y = grid_map.getSize()(1);
+
+    for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
+      for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
+        input[map_mat.cols * idx_x + idx_y] = (grid_data(idx_x, idx_y)) == 100.0 ? 255 : 0 ;
+      }
+    }
+
+    grid_map.add(inflated_occupancy_layer);
+    grid_map::Matrix& data_inflated (grid_map[inflated_occupancy_layer]);
+
+    int erosion_type = cv::MORPH_ELLIPSE;
+    int erosion_size = inflation_radius_map_cells;
+    cv::Mat element = cv::getStructuringElement( erosion_type,
+                                                 cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                                 cv::Point( erosion_size, erosion_size ) );
+
+    cv::Mat inflated_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+    uchar *inflated_map_p = (uchar*)(inflated_mat.data);
+
+    cv::dilate(map_mat, inflated_mat, element);
+
+    for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
+      for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
+
+        if (grid_data (idx_x, idx_y) != 0.0){
+          // If not free space, copy old map
+          data_inflated(idx_x, idx_y) = grid_data(idx_x, idx_y);
+        }else{
+
+          if (inflated_map_p[map_mat.cols * idx_x + idx_y] != 0){
+            // If free space and inflated in dilated map, mark occupied
+            data_inflated(idx_x, idx_y) = 100.0;
+          }else{
+            // Otherwise copy old map
+            data_inflated(idx_x, idx_y) = grid_data (idx_x, idx_y);
+          }
+        }
+      }
+    }
+
+    return true;
+  }
   
   
   bool addDistanceTransformCv(grid_map::GridMap& grid_map,
@@ -39,11 +98,11 @@ namespace grid_map_transforms{
     //cv::namedWindow("converted_map");
     //cv::imshow("converted_map", map_mat);
     //cv::waitKey();
-    
+
     grid_map.add(dist_trans_layer);
     grid_map::Matrix& data_normal (grid_map[dist_trans_layer]);
     
-    //Have to work around row vs column major represnetation in cv vs eigen
+    //Have to work around row vs column major representation in cv vs eigen
     Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data (data_normal);
     
     cv::Mat distance_transformed (data.rows(), data.cols(), CV_32FC1, data.data());

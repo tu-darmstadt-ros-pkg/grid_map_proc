@@ -13,6 +13,15 @@
 
 namespace grid_map_transforms{
 
+    /*
+     * Adds a inflated layer to the provided grid_map.
+     * Note inflation radius is given in map cells.
+     */
+    bool addInflatedLayer(grid_map::GridMap& map,
+                                       const float inflation_radius_map_cells = 6.0,
+                                       const std::string occupancy_layer = "occupancy",
+                                       const std::string inflated_occupancy_layer = "occupancy_inflated");
+
     bool addDistanceTransformCv(grid_map::GridMap& grid_map,
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform");
@@ -31,7 +40,6 @@ namespace grid_map_transforms{
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform",
                             const std::string expl_trans_layer = "exploration_transform");
-
 
     bool collectReachableObstacleCells(grid_map::GridMap& grid_map,
                                        const grid_map::Index& seed_point,
