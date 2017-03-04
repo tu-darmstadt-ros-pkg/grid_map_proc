@@ -24,10 +24,11 @@ namespace grid_map_polygon_tools{
   {
     poly.removeVertices();
     poly.setFrameId(frame_id);
-    poly.addVertex(grid_map::Position( footprint_x,  footprint_y));
-    poly.addVertex(grid_map::Position(-footprint_x,  footprint_y));
-    poly.addVertex(grid_map::Position(-footprint_x, -footprint_y));
-    poly.addVertex(grid_map::Position( footprint_x, -footprint_y));
+    poly.addVertex(0.5*grid_map::Position( footprint_x,  footprint_y));
+    poly.addVertex(0.5*grid_map::Position(-footprint_x,  footprint_y));
+    poly.addVertex(0.5*grid_map::Position(-footprint_x, -footprint_y));
+    poly.addVertex(0.5*grid_map::Position( footprint_x, -footprint_y));
+    poly.addVertex(0.5*grid_map::Position( footprint_x,  footprint_y));
   }
 
   void printPolyInfo(const grid_map::Polygon& poly)
@@ -52,7 +53,7 @@ namespace grid_map_polygon_tools{
   grid_map::Polygon getTransformedPoly(const grid_map::Polygon& poly, const Eigen::Affine3d& pose, const std::string& frame_id)
   {
     grid_map::Polygon out_poly;
-    out_poly.setFrameId("world");
+    out_poly.setFrameId(frame_id);
 
     const std::vector<grid_map::Position>& vertices = poly.getVertices();
 
