@@ -22,6 +22,11 @@ namespace grid_map_transforms{
                                        const std::string occupancy_layer = "occupancy",
                                        const std::string inflated_occupancy_layer = "occupancy_inflated");
 
+    bool addDeflatedLayer(grid_map::GridMap& map,
+                                       const float deflation_radius_map_cells = 6.0,
+                                       const std::string occupancy_layer = "occupancy",
+                                       const std::string deflated_occupancy_layer = "occupancy_deflated");
+
     bool addDistanceTransformCv(grid_map::GridMap& grid_map,
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform");
@@ -57,33 +62,7 @@ namespace grid_map_transforms{
                          const float add_cost,
                          const float lethal_dist,
                          const float penalty_dist,
-                         std::queue<grid_map::Index>& point_queue)
-    {
-      //If not free at cell, return right away
-      if (grid_map(idx_x, idx_y) != 0)
-        return;
-
-
-      float dist = dist_map(idx_x, idx_y);
-
-      if (dist < lethal_dist)
-        return;
-
-      float cost = curr_val + add_cost;
-
-      //if (dist < 20.0){
-      //  cost += 1.0 * std::pow((20.0 - dist_map(idx_x, idx_y)), 2);
-      //}
-      if (dist < penalty_dist){
-        float add_cost = (penalty_dist - dist);
-        cost += add_cost * add_cost;
-      }
-
-      if (expl_trans_map(idx_x, idx_y) > cost){
-        expl_trans_map(idx_x, idx_y) = cost;
-        point_queue.push(grid_map::Index(idx_x, idx_y));
-      }
-    }
+                         std::queue<grid_map::Index>& point_queue);
 
     void touchDistCell(const grid_map::Matrix& grid_map,
                          grid_map::Matrix& expl_trans_map,
@@ -91,19 +70,7 @@ namespace grid_map_transforms{
                          const int idx_y,
                          const float curr_val,
                          const float add_cost,
-                         std::queue<grid_map::Index>& point_queue)
-    {
-      //If not free at cell, return right away
-      if (grid_map(idx_x, idx_y) != 0)
-        return;
-
-      float cost = curr_val + add_cost;
-
-      if (expl_trans_map(idx_x, idx_y) > cost){
-        expl_trans_map(idx_x, idx_y) = cost;
-        point_queue.push(grid_map::Index(idx_x, idx_y));
-      }
-    }
+                         std::queue<grid_map::Index>& point_queue);
 
     void touchObstacleSearchCell(const grid_map::Matrix& grid_map,
                          grid_map::Matrix& expl_trans_map,
@@ -112,37 +79,5 @@ namespace grid_map_transforms{
                          const int idx_y,
                          std::vector<grid_map::Index>& obstacle_cells,
                          std::vector<grid_map::Index>& frontier_cells,
-                         std::queue<grid_map::Index>& point_queue)
-    {
-      // Free
-      if ( (grid_map(idx_x, idx_y) == 0.0) ){
-        if (expl_trans_map(idx_x, idx_y) != std::numeric_limits<float>::max()){
-          return;
-        }else{
-          expl_trans_map(idx_x, idx_y) = -3.0;
-          point_queue.push(grid_map::Index(idx_x, idx_y));
-        }
-      // Occupied
-      }else if (grid_map(idx_x, idx_y) == 100.0){
-        if (expl_trans_map(idx_x, idx_y) == -1.0){
-          return;
-        }else{
-          expl_trans_map(idx_x, idx_y) = -1.0;
-          obstacle_cells.push_back(grid_map::Index(idx_x, idx_y));
-        }
-      // Unknown
-      }else{
-        if (expl_trans_map(current_point(0), current_point(1)) == -2.0){
-          return;
-        }else{
-          expl_trans_map(current_point(0), current_point(1)) = -2.0;
-          frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
-        }
-      }
-
-
-    }
-
-
-
+                         std::queue<grid_map::Index>& point_queue);
 } /* namespace */

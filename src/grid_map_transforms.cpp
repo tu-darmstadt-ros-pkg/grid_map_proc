@@ -63,7 +63,65 @@ namespace grid_map_transforms{
 
     return true;
   }
-  
+
+  bool addDeflatedLayer(grid_map::GridMap& grid_map,
+                                     const float deflation_radius_map_cells,
+                                     const std::string occupancy_layer,
+                                     const std::string deflated_occupancy_layer)
+  {
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    cv::Mat map_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+
+    uchar *input = (uchar*)(map_mat.data);
+
+    size_t size_x = grid_map.getSize()(0);
+    size_t size_y = grid_map.getSize()(1);
+
+    for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
+      for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
+        input[map_mat.cols * idx_x + idx_y] = (grid_data(idx_x, idx_y)) == 100.0 ? 255 : 0 ;
+      }
+    }
+
+    grid_map.add(deflated_occupancy_layer);
+    grid_map::Matrix& data_deflated (grid_map[deflated_occupancy_layer]);
+
+    int erosion_type = cv::MORPH_ELLIPSE;
+    int erosion_size = deflation_radius_map_cells;
+    cv::Mat element = cv::getStructuringElement( erosion_type,
+                                                 cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                                 cv::Point( erosion_size, erosion_size ) );
+
+    cv::Mat deflated_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+    uchar *deflated_map_p = (uchar*)(deflated_mat.data);
+
+    cv::erode(map_mat, deflated_mat, element);
+
+    for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
+      for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
+
+        if (grid_data (idx_x, idx_y) == 0.0){
+          // If free space, copy old map
+          data_deflated(idx_x, idx_y) = grid_data(idx_x, idx_y);
+        }else{
+
+          if (deflated_map_p[map_mat.cols * idx_x + idx_y] != 255){
+            // If not free space and deflated in eroded map, mark free
+            data_deflated(idx_x, idx_y) = 0.0;
+          }else{
+            // Otherwise copy old map
+            data_deflated(idx_x, idx_y) = grid_data (idx_x, idx_y);
+          }
+        }
+      }
+    }
+
+    return true;
+  }
   
   bool addDistanceTransformCv(grid_map::GridMap& grid_map,
                               const std::string occupancy_layer,
@@ -494,5 +552,96 @@ namespace grid_map_transforms{
     return true;
   }
 
-  
+  void touchExplorationCell(const grid_map::Matrix& grid_map,
+                            const grid_map::Matrix& dist_map,
+                       grid_map::Matrix& expl_trans_map,
+                       const int idx_x,
+                       const int idx_y,
+                       const float curr_val,
+                       const float add_cost,
+                       const float lethal_dist,
+                       const float penalty_dist,
+                       std::queue<grid_map::Index>& point_queue)
+  {
+    //If not free at cell, return right away
+    if (grid_map(idx_x, idx_y) != 0)
+      return;
+
+
+    float dist = dist_map(idx_x, idx_y);
+
+    if (dist < lethal_dist)
+      return;
+
+    float cost = curr_val + add_cost;
+
+    //if (dist < 20.0){
+    //  cost += 1.0 * std::pow((20.0 - dist_map(idx_x, idx_y)), 2);
+    //}
+    if (dist < penalty_dist){
+      float add_cost = (penalty_dist - dist);
+      cost += add_cost * add_cost;
+    }
+
+    if (expl_trans_map(idx_x, idx_y) > cost){
+      expl_trans_map(idx_x, idx_y) = cost;
+      point_queue.push(grid_map::Index(idx_x, idx_y));
+    }
+  }
+
+  void touchDistCell(const grid_map::Matrix& grid_map,
+                       grid_map::Matrix& expl_trans_map,
+                       const int idx_x,
+                       const int idx_y,
+                       const float curr_val,
+                       const float add_cost,
+                       std::queue<grid_map::Index>& point_queue)
+  {
+    //If not free at cell, return right away
+    if (grid_map(idx_x, idx_y) != 0)
+      return;
+
+    float cost = curr_val + add_cost;
+
+    if (expl_trans_map(idx_x, idx_y) > cost){
+      expl_trans_map(idx_x, idx_y) = cost;
+      point_queue.push(grid_map::Index(idx_x, idx_y));
+    }
+  }
+
+  void touchObstacleSearchCell(const grid_map::Matrix& grid_map,
+                       grid_map::Matrix& expl_trans_map,
+                       const grid_map::Index& current_point,
+                       const int idx_x,
+                       const int idx_y,
+                       std::vector<grid_map::Index>& obstacle_cells,
+                       std::vector<grid_map::Index>& frontier_cells,
+                       std::queue<grid_map::Index>& point_queue)
+  {
+    // Free
+    if ( (grid_map(idx_x, idx_y) == 0.0) ){
+      if (expl_trans_map(idx_x, idx_y) != std::numeric_limits<float>::max()){
+        return;
+      }else{
+        expl_trans_map(idx_x, idx_y) = -3.0;
+        point_queue.push(grid_map::Index(idx_x, idx_y));
+      }
+    // Occupied
+    }else if (grid_map(idx_x, idx_y) == 100.0){
+      if (expl_trans_map(idx_x, idx_y) == -1.0){
+        return;
+      }else{
+        expl_trans_map(idx_x, idx_y) = -1.0;
+        obstacle_cells.push_back(grid_map::Index(idx_x, idx_y));
+      }
+    // Unknown
+    }else{
+      if (expl_trans_map(current_point(0), current_point(1)) == -2.0){
+        return;
+      }else{
+        expl_trans_map(current_point(0), current_point(1)) = -2.0;
+        frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
+      }
+    }
+  }
 } /* namespace */
