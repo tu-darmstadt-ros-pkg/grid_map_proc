@@ -40,7 +40,7 @@ namespace grid_map_transforms{
 
     bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
-                            const float lethal_dist = 6.0,
+                            const float lethal_dist = 4.0,
                             const float penalty_dist = 12.0,
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform",
