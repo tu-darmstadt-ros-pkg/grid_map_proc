@@ -42,6 +42,7 @@ namespace grid_map_transforms{
                             const std::vector<grid_map::Index>& goal_points,
                             const float lethal_dist = 4.0,
                             const float penalty_dist = 12.0,
+                            const float penalty_weight = 1.0,
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform",
                             const std::string expl_trans_layer = "exploration_transform");
@@ -62,6 +63,7 @@ namespace grid_map_transforms{
                          const float add_cost,
                          const float lethal_dist,
                          const float penalty_dist,
+                         const float penalty_weight,
                          std::queue<grid_map::Index>& point_queue);
 
     void touchDistCell(const grid_map::Matrix& grid_map,

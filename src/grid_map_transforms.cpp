@@ -297,6 +297,7 @@ namespace grid_map_transforms{
                             const std::vector<grid_map::Index>& goal_points,
                             const float lethal_dist,
                             const float penalty_dist,
+                            const float penalty_weight,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer,
                             const std::string expl_trans_layer)
@@ -350,6 +351,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -361,6 +363,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -372,6 +375,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -383,6 +387,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -394,6 +399,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -405,6 +411,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -416,6 +423,7 @@ namespace grid_map_transforms{
                       adjacent_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
 
       touchExplorationCell(grid_data,
@@ -427,6 +435,7 @@ namespace grid_map_transforms{
                       diagonal_dist,
                       lethal_dist,
                       penalty_dist,
+                      penalty_weight,
                       point_queue);
     }
 
@@ -561,6 +570,7 @@ namespace grid_map_transforms{
                        const float add_cost,
                        const float lethal_dist,
                        const float penalty_dist,
+                       const float penalty_weight,
                        std::queue<grid_map::Index>& point_queue)
   {
     //If not free at cell, return right away
@@ -580,7 +590,7 @@ namespace grid_map_transforms{
     //}
     if (dist < penalty_dist){
       float add_cost = (penalty_dist - dist);
-      cost += add_cost * add_cost;
+      cost += penalty_weight * (add_cost * add_cost);
     }
 
     if (expl_trans_map(idx_x, idx_y) > cost){
