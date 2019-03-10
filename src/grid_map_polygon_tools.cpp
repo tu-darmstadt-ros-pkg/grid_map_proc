@@ -159,8 +159,7 @@ namespace grid_map_polygon_tools{
 
             obstacle_pose.position.x = position.x();
             obstacle_pose.position.y = position.y();
-            obstacle_pose.position.z = position.z() + found_obstacle_height_offset;
-
+            obstacle_pose.position.z = found_obstacle_height_offset;
             obstacle_pose.orientation = path.poses[i].pose.orientation;
 
             return true;
