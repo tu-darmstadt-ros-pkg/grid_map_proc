@@ -26,8 +26,9 @@ namespace grid_map_path_planning{
     }
 
     if (expl_data(current_index(0), current_index(1)) == std::numeric_limits<float>::max()){
-      ROS_WARN("Start index not in exploration transform");
-      return false;
+      ROS_INFO("Invalid exploration cost at start position. Assuming the map is fully discovered.");
+      path.clear();
+      return true;
     }
 
     std::vector <grid_map::Index> path_indices;
