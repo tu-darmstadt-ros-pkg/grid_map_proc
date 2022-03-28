@@ -35,6 +35,7 @@ add_library(grid_map_proc
   src/grid_map_path_planning.cpp
   src/grid_map_polygon_tools.cpp
   src/grid_map_transforms.cpp
+  src/rectangle_iterator.cpp
 )
 
 ## Add cmake target dependencies of the library
