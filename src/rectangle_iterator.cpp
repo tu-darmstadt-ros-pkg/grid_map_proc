@@ -54,8 +54,6 @@ RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_ma
   start_index_ = get_index(max_x, max_y);
   end_index_ = get_index(min_x, min_y);
 
-  index_ = start_index_;
-
   const grid_map::Vector map_center = 0.5 * map.getLength();
   map_offset_ = (map_center.array() - 0.5 * map.getResolution()).matrix();
 
@@ -63,6 +61,10 @@ RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_ma
   map_resolution_ = map.getResolution();
   map_buffer_size_ = map.getSize();
   map_buffer_start_index_ = map.getStartIndex();
+
+  // Move to first valid position
+  index_ = start_index_.array() - 1;
+  ++(*this);
 }
 
 RectangleIterator& RectangleIterator::operator++()
