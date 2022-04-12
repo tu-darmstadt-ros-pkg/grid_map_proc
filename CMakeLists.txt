@@ -18,16 +18,19 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
+find_package(Eigen3 REQUIRED)
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES grid_map_proc
   CATKIN_DEPENDS eigen_conversions geometry_msgs grid_map_core grid_map_msgs grid_map_ros roscpp tf
-#  DEPENDS system_lib
+  DEPENDS EIGEN3
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library

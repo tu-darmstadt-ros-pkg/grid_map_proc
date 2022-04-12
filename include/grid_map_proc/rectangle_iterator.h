@@ -5,6 +5,8 @@
 #include <grid_map_core/Polygon.hpp>
 #include <grid_map_core/TypeDefs.hpp>
 
+#include <Eigen/Core>
+
 #include <iterator>
 #include <memory>
 
