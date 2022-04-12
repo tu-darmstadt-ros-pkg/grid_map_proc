@@ -18,7 +18,7 @@ RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_ma
   const std::vector<grid_map::Position>& vertices = polygon_.getVertices();
   if (vertices.size() != 4U)
   {
-    std::string error{ "RectangleIterator needs 4 point polygone, got size " + std::to_string(vertices.size()) };
+    std::string error{ "RectangleIterator needs 4 point polygon, got size " + std::to_string(vertices.size()) };
     ROS_FATAL_STREAM(error);
     throw std::domain_error(error);
   }
