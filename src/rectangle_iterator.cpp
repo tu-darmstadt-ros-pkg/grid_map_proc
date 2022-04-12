@@ -6,6 +6,7 @@
 #include <grid_map_core/SubmapGeometry.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -13,9 +14,9 @@
 namespace grid_map_proc
 {
 RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_map::Polygon& rectangle_polygon)
-  : polygon_{ rectangle_polygon }, past_end_{ false }
+  : past_end_{ false }
 {
-  const std::vector<grid_map::Position>& vertices = polygon_.getVertices();
+  std::vector<grid_map::Position> vertices = rectangle_polygon.getVertices();
   if (vertices.size() != 4U)
   {
     std::string error{ "RectangleIterator needs 4 point polygon, got size " + std::to_string(vertices.size()) };
@@ -39,6 +40,28 @@ RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_ma
     min_y = std::min(min_y, point.y());
     max_y = std::max(max_y, point.y());
   }
+
+  std::sort(vertices.begin(), vertices.end(),
+            [](const grid_map::Position& a, const grid_map::Position& b) { return a.y() < b.y(); });
+
+  // axis:
+  // ^ x
+  // |
+  // ----> y
+  const Eigen::Vector2d left_top = vertices.at(0).x() > vertices.at(1).x() ? vertices.at(0) : vertices.at(1);
+  const Eigen::Vector2d left_down = vertices.at(0) != left_top ? vertices.at(0) : vertices.at(1);
+
+  const Eigen::Vector2d right_top = vertices.at(2).x() > vertices.at(3).x() ? vertices.at(2) : vertices.at(3);
+  const Eigen::Vector2d right_down = vertices.at(2) != right_top ? vertices.at(2) : vertices.at(3);
+
+  x_length_half_ = 0.5 * (left_top - left_down).norm();
+  y_length_half_ = 0.5 * (right_top - left_top).norm();
+  const Eigen::Vector2d center = left_down + (0.5 * (right_top - left_down));
+
+  const Eigen::Vector2d x_vector = left_top - left_down;
+  const double angle = std::atan2(x_vector.y(), x_vector.x());
+
+  rectangle_transform_ = Eigen::Rotation2Dd(-angle) * Eigen::Translation2d(-center);
 
   const auto get_index = [&map](const double x, const double y) -> grid_map::Index {
     grid_map::Position position{ x, y };
@@ -104,7 +127,9 @@ bool RectangleIterator::isInside()
 
   const grid_map::Position position = map_position_ + map_offset_ + map_resolution_ * index_vector;
 
-  return polygon_.isInside(position);
+  const grid_map::Position rect_position = rectangle_transform_ * position;
+
+  return std::abs(rect_position.x()) <= x_length_half_ && std::abs(rect_position.y()) <= y_length_half_;
 }
 
 bool RectangleIterator::pastEnd() const

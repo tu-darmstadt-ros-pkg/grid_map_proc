@@ -6,6 +6,7 @@
 #include <grid_map_core/TypeDefs.hpp>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include <iterator>
 #include <memory>
@@ -39,7 +40,6 @@ private:
   bool nextStep();
   bool isInside();
 
-  grid_map::Polygon polygon_;
   grid_map::Vector map_offset_;
   grid_map::Position map_position_;
   double map_resolution_;
@@ -49,6 +49,11 @@ private:
   grid_map::Index start_index_;
   grid_map::Index end_index_;
   grid_map::Index index_;
+
+  double x_length_half_;
+  double y_length_half_;
+
+  Eigen::Isometry2d rectangle_transform_;
 
   bool past_end_;
 };
