@@ -18,8 +18,8 @@ namespace grid_map_polygon_tools{
 
     return polygon;
   }
-  
-  
+
+
   void setFootprintPoly(const double footprint_x, const double footprint_y, grid_map::Polygon& poly, const std::string& frame_id)
   {
     poly.removeVertices();
@@ -41,15 +41,15 @@ namespace grid_map_polygon_tools{
       ROS_INFO("Vertex %d Position x: %f y: %f", (int)i, positions[i].x(), positions[i].y());
     }
   }
-  
+
   grid_map::Polygon getTransformedPoly(const grid_map::Polygon& poly, const geometry_msgs::Pose& pose, const std::string& frame_id)
   {
     Eigen::Affine3d transform;
     tf::poseMsgToEigen(pose, transform);
     return getTransformedPoly(poly, transform);
   }
-  
-  
+
+
   grid_map::Polygon getTransformedPoly(const grid_map::Polygon& poly, const Eigen::Affine3d& pose, const std::string& frame_id)
   {
     grid_map::Polygon out_poly;
@@ -68,6 +68,8 @@ namespace grid_map_polygon_tools{
   bool isPathInCollision(const grid_map::Polygon&  poly,
                          const grid_map::GridMap& grid_map,
                          const nav_msgs::Path& path,
+                         const float& lower_threshold,
+                         const float& upper_threshold,
                          const std::string& layer)
   {
     if (!grid_map.exists(layer)){
@@ -78,12 +80,17 @@ namespace grid_map_polygon_tools{
     const grid_map::Matrix& map_data = grid_map[layer];
 
     for (size_t i = 0; i < path.poses.size(); ++i){
-      grid_map::Polygon poly = getTransformedPoly(poly, path.poses[i].pose);
+      grid_map::Polygon transformed_poly = getTransformedPoly(poly, path.poses[i].pose);
 
-      for (grid_map::PolygonIterator poly_iterator(grid_map, poly); !poly_iterator.isPastEnd(); ++poly_iterator) {
+      for (grid_map::PolygonIterator poly_iterator(grid_map, transformed_poly); !poly_iterator.isPastEnd(); ++poly_iterator) {
         const grid_map::Index index(*poly_iterator);
 
         //std::cout << "idx: " << index(0) << " " << index(1) << "\n";
+
+        if ( map_data(index(0), index(1)) <= lower_threshold ||
+             map_data(index(0), index(1)) >= upper_threshold ){
+          return true;
+        }
 
         //map_data(index(0), index(1)) = 100.0;
       }
@@ -93,11 +100,60 @@ namespace grid_map_polygon_tools{
     return false;
   }
 
-  /**
+
+  std::vector<bool> isPathInCollisionPerPose(const grid_map::Polygon&  poly,
+                                             const grid_map::GridMap& grid_map,
+                                             grid_map::GridMap& polygon_iterator_map,
+                                             const nav_msgs::Path& path,
+                                             const float& lower_threshold,
+                                             const float& upper_threshold,
+                                             const std::string& layer)
+  {
+
+    if (!grid_map.exists(layer))
+    {
+      ROS_ERROR("Requested layer %s does not exist in grid map, cannot check path for collisions!", layer.c_str());
+      return std::vector<bool>();
+    }
+
+    const grid_map::Matrix& map_data = grid_map[layer];
+
+    // init result vector with false
+    std::vector<bool> result(path.poses.size(), false);
+
+    // check for each pose, if it is in collision with given polygon
+    for (size_t i = 0; i < path.poses.size(); ++i)
+    {
+      grid_map::Polygon transformed_poly = getTransformedPoly(poly, path.poses[i].pose);
+
+      for (grid_map::PolygonIterator poly_iterator(grid_map, transformed_poly);
+           !poly_iterator.isPastEnd();
+           ++poly_iterator)
+      {
+        const grid_map::Index index(*poly_iterator);
+
+        // TEMPORARY
+        polygon_iterator_map[layer](index(0), index(1)) = 200;
+
+        // check if in collision according to given thresholds
+        if (map_data(index(0), index(1)) < lower_threshold ||
+            map_data(index(0), index(1)) > upper_threshold)
+        {
+          polygon_iterator_map[layer](index(0), index(1)) = 300;
+          result[i] = true;
+        }
+      }
+    }
+
+    return result;
+  }
+
+
+/**
    * @brief isPathInCollisionElevation checks if a path is in collision based on elevation map data
    * @param poly The footprint polygon
    * @param grid_map The grid (elevation) map
-   * @param path The path containg poses to be checked
+   * @param path The path containing poses to be checked
    * @param robot_elevation The elevation of the robot
    * @param elevation_threshold The maximum allowed difference between elevation of the robot and grid cells
    * @param obstacle_pose The pose where a obstacle has been detected
