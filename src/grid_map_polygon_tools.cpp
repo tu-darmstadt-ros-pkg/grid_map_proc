@@ -103,7 +103,6 @@ namespace grid_map_polygon_tools{
 
   std::vector<bool> isPathInCollisionPerPose(const grid_map::Polygon&  poly,
                                              const grid_map::GridMap& grid_map,
-                                             grid_map::GridMap& polygon_iterator_map,
                                              const nav_msgs::Path& path,
                                              const float& lower_threshold,
                                              const float& upper_threshold,
@@ -132,14 +131,10 @@ namespace grid_map_polygon_tools{
       {
         const grid_map::Index index(*poly_iterator);
 
-        // TEMPORARY
-        polygon_iterator_map[layer](index(0), index(1)) = 200;
-
         // check if in collision according to given thresholds
         if (map_data(index(0), index(1)) < lower_threshold ||
             map_data(index(0), index(1)) > upper_threshold)
         {
-          polygon_iterator_map[layer](index(0), index(1)) = 300;
           result[i] = true;
         }
       }

@@ -56,7 +56,6 @@ namespace grid_map_polygon_tools{
    */
   std::vector<bool> isPathInCollisionPerPose(const grid_map::Polygon&  poly,
                                              const grid_map::GridMap& grid_map,
-                                             grid_map::GridMap& polygon_iterator_map,
                                              const nav_msgs::Path& path,
                                              const float& lower_threshold = 0.0,
                                              const float& upper_threshold = 10.0,
