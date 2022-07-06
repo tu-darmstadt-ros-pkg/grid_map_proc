@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  catch_ros
   eigen_conversions
   geometry_msgs
   grid_map_core
@@ -57,6 +58,8 @@ add_dependencies(grid_map_proc ${catkin_EXPORTED_TARGETS})
 target_link_libraries(grid_map_proc
   ${catkin_LIBRARIES}
 )
+
+add_subdirectory(test)
 
 #############
 ## Install ##
