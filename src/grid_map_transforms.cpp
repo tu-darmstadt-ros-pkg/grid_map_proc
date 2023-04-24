@@ -187,7 +187,7 @@ namespace grid_map_transforms{
     grid_map::Matrix& grid_data = grid_map[occupancy_layer];
 
     grid_map.add(dist_trans_layer, std::numeric_limits<float>::max());
-    grid_map::Matrix& expl_layer (grid_map[dist_trans_layer]);
+    grid_map::Matrix& dist_layer (grid_map[dist_trans_layer]);
 
     std::queue<grid_map::Index> point_queue;
 
@@ -202,7 +202,7 @@ namespace grid_map_transforms{
 
     for (size_t i = 0; i < obstacle_cells.size(); ++i){
       const grid_map::Index& point = obstacle_cells[i];
-      expl_layer(point(0), point(1)) = 0.0;
+      dist_layer(point(0), point(1)) = 0.0;
       point_queue.push(point);
     }
 
@@ -222,10 +222,10 @@ namespace grid_map_transforms{
           continue;
       }
 
-      float current_val = expl_layer(point(0), point(1));
+      float current_val = dist_layer(point(0), point(1));
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0)-1,
                       point(1)-1,
                       current_val,
@@ -233,7 +233,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0),
                       point(1)-1,
                       current_val,
@@ -241,7 +241,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0)+1,
                       point(1)-1,
                       current_val,
@@ -249,7 +249,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0)-1,
                       point(1),
                       current_val,
@@ -257,7 +257,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0)+1,
                       point(1),
                       current_val,
@@ -265,7 +265,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0)-1,
                       point(1)+1,
                       current_val,
@@ -273,7 +273,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0),
                       point(1)+1,
                       current_val,
@@ -281,7 +281,7 @@ namespace grid_map_transforms{
                       point_queue);
 
       touchDistCell(grid_data,
-                      expl_layer,
+                      dist_layer,
                       point(0)+1,
                       point(1)+1,
                       current_val,
@@ -300,7 +300,8 @@ namespace grid_map_transforms{
                             const float penalty_weight,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer,
-                            const std::string expl_trans_layer)
+                            const std::string expl_trans_layer,
+                            const int min_area_size)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
@@ -316,8 +317,60 @@ namespace grid_map_transforms{
 
     std::queue<grid_map::Index> point_queue;
 
-    for (size_t i = 0; i < goal_points.size(); ++i){
-      const grid_map::Index& point = goal_points[i];
+    grid_map.add("exploration_frontiers", 0.0);
+    grid_map::Matrix& frontier_layer (grid_map["exploration_frontiers"]);
+
+    // set all goal points to 1.0 in frontier layer
+    for (const auto& goal_point : goal_points)
+      frontier_layer(goal_point(0), goal_point(1)) = 1.0;
+
+    std::vector<std::vector<grid_map::Index>> goal_areas;
+
+    for (const auto& goal_point : goal_points){
+      std::vector<grid_map::Index> goal_area;
+      std::queue<grid_map::Index> points_to_check;
+      points_to_check.push(goal_point);
+      while (!points_to_check.empty()){
+        grid_map::Index current_point = points_to_check.front();
+        points_to_check.pop();
+        goal_area.push_back(current_point);
+
+        // set frontier layer to 2.0 at current point, which means that it is assigned to an area
+        frontier_layer(current_point(0), current_point(1)) = 2.0;
+
+        // check all points around current point
+        grid_map::Index neighbor_up (current_point(0) + 1, current_point(1));
+        grid_map::Index neighbor_down (current_point(0) - 1, current_point(1));
+        grid_map::Index neighbor_left (current_point(0), current_point(1) - 1);
+        grid_map::Index neighbor_right (current_point(0), current_point(1) + 1);
+
+        std::vector<grid_map::Index> neighbors = {neighbor_up, neighbor_down, neighbor_left, neighbor_right};
+
+        for (const auto& neighbor : neighbors){
+          if (frontier_layer(neighbor(0), neighbor(1)) == 1.0){
+            points_to_check.push(neighbor);
+
+            // set frontier layer to 3.0 at neighbor, which means that it is considered for an area
+            frontier_layer(neighbor(0), neighbor(1)) = 3.0;
+          }
+        }
+      }
+      goal_areas.push_back(goal_area);
+    }
+
+    // sort the goal areas by size
+    std::sort(goal_areas.begin(), goal_areas.end(), [](const std::vector<grid_map::Index>& a, const std::vector<grid_map::Index>& b) {
+      return a.size() > b.size();
+    });
+
+    std::vector<grid_map::Index> filtered_goal_points;
+    for (int i = 0; i < goal_areas.size(); ++i){
+      if (goal_areas[i].size() <= min_area_size && i != 0)
+        break;
+      filtered_goal_points.insert(filtered_goal_points.end(), goal_areas[i].begin(), goal_areas[i].end());
+    }
+
+    for (auto& point : filtered_goal_points){
       expl_layer(point(0), point(1)) = 0.0;
       point_queue.push(point);
     }
