@@ -300,8 +300,7 @@ namespace grid_map_transforms{
                             const float penalty_weight,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer,
-                            const std::string expl_trans_layer,
-                            const int min_area_size)
+                            const std::string expl_trans_layer)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
@@ -317,60 +316,8 @@ namespace grid_map_transforms{
 
     std::queue<grid_map::Index> point_queue;
 
-    grid_map.add("exploration_frontiers", 0.0);
-    grid_map::Matrix& frontier_layer (grid_map["exploration_frontiers"]);
-
-    // set all goal points to 1.0 in frontier layer
-    for (const auto& goal_point : goal_points)
-      frontier_layer(goal_point(0), goal_point(1)) = 1.0;
-
-    std::vector<std::vector<grid_map::Index>> goal_areas;
-
-    for (const auto& goal_point : goal_points){
-      std::vector<grid_map::Index> goal_area;
-      std::queue<grid_map::Index> points_to_check;
-      points_to_check.push(goal_point);
-      while (!points_to_check.empty()){
-        grid_map::Index current_point = points_to_check.front();
-        points_to_check.pop();
-        goal_area.push_back(current_point);
-
-        // set frontier layer to 2.0 at current point, which means that it is assigned to an area
-        frontier_layer(current_point(0), current_point(1)) = 2.0;
-
-        // check all points around current point
-        grid_map::Index neighbor_up (current_point(0) + 1, current_point(1));
-        grid_map::Index neighbor_down (current_point(0) - 1, current_point(1));
-        grid_map::Index neighbor_left (current_point(0), current_point(1) - 1);
-        grid_map::Index neighbor_right (current_point(0), current_point(1) + 1);
-
-        std::vector<grid_map::Index> neighbors = {neighbor_up, neighbor_down, neighbor_left, neighbor_right};
-
-        for (const auto& neighbor : neighbors){
-          if (frontier_layer(neighbor(0), neighbor(1)) == 1.0){
-            points_to_check.push(neighbor);
-
-            // set frontier layer to 3.0 at neighbor, which means that it is considered for an area
-            frontier_layer(neighbor(0), neighbor(1)) = 3.0;
-          }
-        }
-      }
-      goal_areas.push_back(goal_area);
-    }
-
-    // sort the goal areas by size
-    std::sort(goal_areas.begin(), goal_areas.end(), [](const std::vector<grid_map::Index>& a, const std::vector<grid_map::Index>& b) {
-      return a.size() > b.size();
-    });
-
-    std::vector<grid_map::Index> filtered_goal_points;
-    for (int i = 0; i < goal_areas.size(); ++i){
-      if (goal_areas[i].size() <= min_area_size && i != 0)
-        break;
-      filtered_goal_points.insert(filtered_goal_points.end(), goal_areas[i].begin(), goal_areas[i].end());
-    }
-
-    for (auto& point : filtered_goal_points){
+    for (size_t i = 0; i < goal_points.size(); ++i){
+      const grid_map::Index& point = goal_points[i];
       expl_layer(point(0), point(1)) = 0.0;
       point_queue.push(point);
     }
@@ -703,7 +650,21 @@ namespace grid_map_transforms{
         return;
       }else{
         expl_trans_map(current_point(0), current_point(1)) = -2.0;
-        frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
+
+        int number_unknown = 0;
+
+        for (int i = -1; i <= 1; i++){
+          for (int j = -1; j <= 1; j++){
+            if (i == 0 && j == 0)
+              continue;
+            if (grid_map(idx_x + i, idx_y + j) != 0.0 && grid_map(idx_x + i, idx_y + j) != 100.0)
+              number_unknown++;
+          }
+        }
+        expl_trans_map(current_point(0), current_point(1)) = -2.0;
+
+        if (number_unknown > 5)
+          frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
       }
     }
   }
