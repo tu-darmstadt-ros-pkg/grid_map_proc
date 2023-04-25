@@ -76,6 +76,7 @@ namespace grid_map_transforms{
 
     void touchObstacleSearchCell(const grid_map::Matrix& grid_map,
                          grid_map::Matrix& expl_trans_map,
+                         float resolution,
                          const grid_map::Index& start_point,
                          const grid_map::Index& current_point,
                          const int idx_x,
@@ -83,5 +84,5 @@ namespace grid_map_transforms{
                          std::vector<grid_map::Index>& obstacle_cells,
                          std::vector<grid_map::Index>& frontier_cells,
                          std::queue<grid_map::Index>& point_queue,
-                         const float min_distance = 15);
+                         float min_distance = 1.0f);
 } /* namespace */

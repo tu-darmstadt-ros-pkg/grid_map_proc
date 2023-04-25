@@ -454,6 +454,8 @@ namespace grid_map_transforms{
     if (!grid_map.exists(occupancy_layer))
       return false;
 
+    auto resolution = static_cast<float>(grid_map.getResolution());
+
     grid_map::Matrix& grid_data = grid_map[occupancy_layer];
 
     std::queue<grid_map::Index> point_queue;
@@ -485,6 +487,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0)-1,
@@ -495,6 +498,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0),
@@ -505,6 +509,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0)+1,
@@ -515,6 +520,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0)-1,
@@ -525,6 +531,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0)+1,
@@ -535,6 +542,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0)-1,
@@ -545,6 +553,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0),
@@ -555,6 +564,7 @@ namespace grid_map_transforms{
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
+                           resolution,
                            seed_point,
                            point,
                            point(0)+1,
@@ -629,6 +639,7 @@ namespace grid_map_transforms{
 
   void touchObstacleSearchCell(const grid_map::Matrix& grid_map,
                        grid_map::Matrix& expl_trans_map,
+                       float resolution,
                        const grid_map::Index& start_point,
                        const grid_map::Index& current_point,
                        const int idx_x,
@@ -636,7 +647,7 @@ namespace grid_map_transforms{
                        std::vector<grid_map::Index>& obstacle_cells,
                        std::vector<grid_map::Index>& frontier_cells,
                        std::queue<grid_map::Index>& point_queue,
-                       const float min_distance)
+                       float min_distance)
   {
     // Free
     if ( (grid_map(idx_x, idx_y) == 0.0) ){
@@ -661,8 +672,8 @@ namespace grid_map_transforms{
       }else{
         expl_trans_map(current_point(0), current_point(1)) = -2.0;
         // add to frontier if far enough away from robot
-        int x_diff = current_point(0) - start_point(0);
-        int y_diff = current_point(1) - start_point(1);
+        float x_diff = static_cast<float>(current_point(0) - start_point(0)) * resolution;
+        float y_diff = static_cast<float>(current_point(1) - start_point(1)) * resolution;
         if ( std::sqrt(x_diff * x_diff + y_diff * y_diff) > min_distance)
           frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
       }
