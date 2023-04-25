@@ -45,8 +45,7 @@ namespace grid_map_transforms{
                             const float penalty_weight = 1.0,
                             const std::string occupancy_layer = "occupancy",
                             const std::string dist_trans_layer = "distance_transform",
-                            const std::string expl_trans_layer = "exploration_transform",
-                            const int min_area_size = 20);
+                            const std::string expl_trans_layer = "exploration_transform");
 
     bool collectReachableObstacleCells(grid_map::GridMap& grid_map,
                                        const grid_map::Index& seed_point,
@@ -77,10 +76,13 @@ namespace grid_map_transforms{
 
     void touchObstacleSearchCell(const grid_map::Matrix& grid_map,
                          grid_map::Matrix& expl_trans_map,
+                         float resolution,
+                         const grid_map::Index& start_point,
                          const grid_map::Index& current_point,
                          const int idx_x,
                          const int idx_y,
                          std::vector<grid_map::Index>& obstacle_cells,
                          std::vector<grid_map::Index>& frontier_cells,
-                         std::queue<grid_map::Index>& point_queue);
+                         std::queue<grid_map::Index>& point_queue,
+                         float min_distance = 1.0f);
 } /* namespace */
