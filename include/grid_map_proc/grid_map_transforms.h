@@ -35,6 +35,7 @@ namespace grid_map_transforms{
                               const grid_map::Index& seed_point,
                               std::vector<grid_map::Index>& obstacle_cells,
                               std::vector<grid_map::Index>& frontier_cells,
+                              float min_frontier_dist_ = 1.0f,
                               const std::string occupancy_layer = "occupancy",
                               const std::string dist_trans_layer = "distance_transform");
 
@@ -51,6 +52,7 @@ namespace grid_map_transforms{
                                        const grid_map::Index& seed_point,
                                        std::vector<grid_map::Index>& obstacle_cells,
                                        std::vector<grid_map::Index>& frontier_cells,
+                                       float min_frontier_dist_ = 1.0f,
                                        const std::string occupancy_layer = "occupancy",
                                        const std::string dist_seed_layer = "dist_seed_transform");
 
