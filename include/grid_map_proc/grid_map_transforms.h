@@ -87,4 +87,16 @@ namespace grid_map_transforms{
                          std::vector<grid_map::Index>& frontier_cells,
                          std::queue<grid_map::Index>& point_queue,
                          float min_distance = 1.0f);
+
+    void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
+                                                         const grid_map::Matrix& occupancy,
+                                                         std::vector<grid_map::Index>& frontier_cells);
+    void touchFilterCell(grid_map::Matrix& expl_trans_map,
+                         const grid_map::Matrix& occupancy,
+                         grid_map::Index index,
+                         int& count_connected_frontier_cells,
+                         int& count_neighboring_unknown_cells,
+                         int& count_neighboring_known_cells,
+                         std::queue<grid_map::Index>& point_queue,
+                         std::vector<grid_map::Index>& frontier_cell_cluster);
 } /* namespace */
