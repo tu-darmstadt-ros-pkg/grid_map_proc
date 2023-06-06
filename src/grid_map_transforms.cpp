@@ -179,6 +179,7 @@ namespace grid_map_transforms{
                             std::vector<grid_map::Index>& obstacle_cells,
                             std::vector<grid_map::Index>& frontier_cells,
                             float min_frontier_dist_,
+                            int min_frontier_size,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer)
   {
@@ -200,7 +201,8 @@ namespace grid_map_transforms{
                                   seed_point,
                                   obstacle_cells,
                                   frontier_cells,
-                                  min_frontier_dist_);
+                                  min_frontier_dist_,
+                                  min_frontier_size);
 
     for (size_t i = 0; i < obstacle_cells.size(); ++i){
       const grid_map::Index& point = obstacle_cells[i];
@@ -450,6 +452,7 @@ namespace grid_map_transforms{
                                      std::vector<grid_map::Index>& obstacle_cells,
                                      std::vector<grid_map::Index>& frontier_cells,
                                      float min_frontier_dist,
+                                     int min_frontier_size,
                                      const std::string occupancy_layer,
                                      const std::string dist_seed_layer)
   {
@@ -584,8 +587,7 @@ namespace grid_map_transforms{
                            min_distance_sq);
     }
 
-    //std::cout << "o: " << obstacle_cells.size() << " f: " << frontier_cells.size() << "\n";
-      filterSmallFrontiersFullySurroundedByKnownCells(expl_layer, grid_data, frontier_cells);
+      filterSmallFrontiersFullySurroundedByKnownCells(expl_layer, frontier_cells, min_frontier_size);
     return true;
   }
 
@@ -693,38 +695,27 @@ namespace grid_map_transforms{
   }
 
   void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
-                                                       const grid_map::Matrix& occupancy,
-                                                      std::vector<grid_map::Index>& frontier_cells)
+                                                      std::vector<grid_map::Index>& frontier_cells,
+                                                       int min_frontier_size)
   {
-      int min_frontier_size = 5;
       if(frontier_cells.size()<min_frontier_size)
+          return;
+      if(min_frontier_size <=1)
           return;
       std::vector<grid_map::Index> new_frontier_cells;
       //iterate over frontiers_cells
-      int count_connected_frontier_cells = 0;
-      int count_neighboring_unknown_cells = 0;
-      int count_neighboring_known_cells = 0;
       std::queue<grid_map::Index> point_queue;
       std::vector<grid_map::Index> frontier_cell_cluster;
-      ROS_WARN_STREAM("filterSmallFrontiersFullySurroundedByKnownCells: # of previously found frontier cells: "<<frontier_cells.size());
       for(auto& frontier_cell:frontier_cells)
       {
           if(expl_trans_map(frontier_cell(0), frontier_cell(1))==-12.0)
                   continue;
           frontier_cell_cluster.clear();
-          count_connected_frontier_cells = 0;
-          count_neighboring_unknown_cells = 0;
-          count_neighboring_known_cells = 0;
           point_queue.push(frontier_cell);
           touchFilterCell(expl_trans_map,
-                          occupancy,
                           frontier_cell,
-                          count_connected_frontier_cells,
-                          count_neighboring_unknown_cells,
-                          count_neighboring_known_cells,
                           point_queue,
                           frontier_cell_cluster);
-          ROS_INFO_STREAM("Assert count_connected_frontier_cells =1 ? "<<count_connected_frontier_cells);
           while (!point_queue.empty())
           {
               grid_map::Index point = point_queue.front();
@@ -736,58 +727,37 @@ namespace grid_map_transforms{
                   {
                       if(i==0 && j==0) continue;
                       touchFilterCell(expl_trans_map,
-                                      occupancy,
                                       {point[0]+i,point[1]+j},
-                                      count_connected_frontier_cells,
-                                      count_neighboring_unknown_cells,
-                                      count_neighboring_known_cells,
                                       point_queue,
                                       frontier_cell_cluster);
                   }
               }
           }
           ROS_INFO_STREAM("Found frontier cluster with "<<frontier_cell_cluster.size()<<" cell");
-          ROS_INFO_STREAM("Count count_connected_frontier_cells "<<count_connected_frontier_cells<<" cells");
-          ROS_INFO_STREAM("Count count_neighboring_unknown_cells "<<count_neighboring_unknown_cells<<" cells");
-          ROS_INFO_STREAM("Count count_neighboring_known_cells "<<count_neighboring_known_cells<<" cells");
-          //TODO if cluster small and less unknown remove
-          if(count_connected_frontier_cells > min_frontier_size)
+          ROS_INFO_STREAM("Count count_connected_frontier_cells "<<frontier_cell_cluster.size()<<" cells");
+          if(frontier_cell_cluster.size() > min_frontier_size)
           {
               for(const auto& cell:frontier_cell_cluster){
                   new_frontier_cells.push_back(cell);
               }
           }
-          else
-          {
-              ROS_WARN_STREAM("Removed frontier with "<<count_connected_frontier_cells<<" cells.");
-          }
+      }
+      if(new_frontier_cells.empty())
+      {
+          ROS_WARN_STREAM("After filtering small frontiers, no frontiers left -> using unfiltered frontiers");
+          return;
       }
       frontier_cells = new_frontier_cells;
   }
 
   void touchFilterCell(grid_map::Matrix& expl_trans_map,
-                       const grid_map::Matrix& occupancy,
                        grid_map::Index index,
-                       int& count_connected_frontier_cells,
-                       int& count_neighboring_unknown_cells,
-                       int& count_neighboring_known_cells,
                        std::queue<grid_map::Index>& point_queue,
                        std::vector<grid_map::Index>& frontier_cell_cluster){
       if(expl_trans_map(index(0), index(1)) == -4.0) {
-          count_connected_frontier_cells++;
           point_queue.push(index);
           frontier_cell_cluster.emplace_back(index);
           expl_trans_map(index(0), index(1)) = -12.0;
       }
-      //occupied or free
-      else if(occupancy(index(0), index(1)) == 0|| occupancy(index(0), index(1)) == 100)
-      {
-          count_neighboring_known_cells++;
-      }
-      else
-      {
-          count_neighboring_unknown_cells++;
-      }
-
   }
 } /* namespace */

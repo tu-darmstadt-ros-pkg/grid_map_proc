@@ -36,6 +36,7 @@ namespace grid_map_transforms{
                               std::vector<grid_map::Index>& obstacle_cells,
                               std::vector<grid_map::Index>& frontier_cells,
                               float min_frontier_dist_ = 1.0f,
+                              int min_frontier_size = 1,
                               const std::string occupancy_layer = "occupancy",
                               const std::string dist_trans_layer = "distance_transform");
 
@@ -53,6 +54,7 @@ namespace grid_map_transforms{
                                        std::vector<grid_map::Index>& obstacle_cells,
                                        std::vector<grid_map::Index>& frontier_cells,
                                        float min_frontier_dist_ = 1.0f,
+                                       int min_frontier_size = 1,
                                        const std::string occupancy_layer = "occupancy",
                                        const std::string dist_seed_layer = "dist_seed_transform");
 
@@ -89,14 +91,10 @@ namespace grid_map_transforms{
                          float min_distance = 1.0f);
 
     void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
-                                                         const grid_map::Matrix& occupancy,
-                                                         std::vector<grid_map::Index>& frontier_cells);
+                                                         std::vector<grid_map::Index>& frontier_cells,
+                                                         int min_frontier_size);
     void touchFilterCell(grid_map::Matrix& expl_trans_map,
-                         const grid_map::Matrix& occupancy,
                          grid_map::Index index,
-                         int& count_connected_frontier_cells,
-                         int& count_neighboring_unknown_cells,
-                         int& count_neighboring_known_cells,
                          std::queue<grid_map::Index>& point_queue,
                          std::vector<grid_map::Index>& frontier_cell_cluster);
 } /* namespace */
