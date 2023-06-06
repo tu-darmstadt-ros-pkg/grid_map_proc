@@ -58,6 +58,16 @@ namespace grid_map_transforms{
                                        const std::string occupancy_layer = "occupancy",
                                        const std::string dist_seed_layer = "dist_seed_transform");
 
+    /**
+     * Removes small frontier clusters from the frontier_cell vector.
+     * @param expl_trans_map map that was filled in touchObstacleSearchCell()
+     * @param frontier_cells
+     * @param min_frontier_size all frontiers <= this value are removed
+     */
+    void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
+                                                         std::vector<grid_map::Index>& frontier_cells,
+                                                         int min_frontier_size);
+
     void touchExplorationCell(const grid_map::Matrix& grid_map,
                               const grid_map::Matrix& dist_map,
                          grid_map::Matrix& expl_trans_map,
@@ -90,11 +100,16 @@ namespace grid_map_transforms{
                          std::queue<grid_map::Index>& point_queue,
                          float min_distance = 1.0f);
 
-    void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
-                                                         std::vector<grid_map::Index>& frontier_cells,
-                                                         int min_frontier_size);
+    /**
+     * Tests whether the cell corresponding to the given index is a frontier cell.
+     * If so it is added to the current frontier_cluster.
+     * @param expl_trans_map
+     * @param index
+     * @param point_queue
+     * @param frontier_cell_cluster
+     */
     void touchFilterCell(grid_map::Matrix& expl_trans_map,
-                         grid_map::Index index,
+                         const grid_map::Index& index,
                          std::queue<grid_map::Index>& point_queue,
                          std::vector<grid_map::Index>& frontier_cell_cluster);
 } /* namespace */

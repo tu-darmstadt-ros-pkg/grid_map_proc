@@ -695,15 +695,15 @@ namespace grid_map_transforms{
   }
 
   void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
-                                                      std::vector<grid_map::Index>& frontier_cells,
+                                                       std::vector<grid_map::Index>& frontier_cells,
                                                        int min_frontier_size)
   {
       if(frontier_cells.size()<min_frontier_size)
           return;
-      if(min_frontier_size <=1)
+      if(min_frontier_size <1)
           return;
       std::vector<grid_map::Index> new_frontier_cells;
-      //iterate over frontiers_cells
+      //iterate over frontiers_cells all frontier cells and count cells per cluster
       std::queue<grid_map::Index> point_queue;
       std::vector<grid_map::Index> frontier_cell_cluster;
       for(auto& frontier_cell:frontier_cells)
@@ -733,8 +733,6 @@ namespace grid_map_transforms{
                   }
               }
           }
-          ROS_INFO_STREAM("Found frontier cluster with "<<frontier_cell_cluster.size()<<" cell");
-          ROS_INFO_STREAM("Count count_connected_frontier_cells "<<frontier_cell_cluster.size()<<" cells");
           if(frontier_cell_cluster.size() > min_frontier_size)
           {
               for(const auto& cell:frontier_cell_cluster){
@@ -751,12 +749,15 @@ namespace grid_map_transforms{
   }
 
   void touchFilterCell(grid_map::Matrix& expl_trans_map,
-                       grid_map::Index index,
+                       const grid_map::Index& index,
                        std::queue<grid_map::Index>& point_queue,
                        std::vector<grid_map::Index>& frontier_cell_cluster){
       if(expl_trans_map(index(0), index(1)) == -4.0) {
           point_queue.push(index);
           frontier_cell_cluster.emplace_back(index);
+          //mark cell so that it is not found again
+          // (if expl_trans_map is needed again, undo after
+          // filterSmallFrontiersFullySurroundedByKnownCells for all frontier cells)
           expl_trans_map(index(0), index(1)) = -12.0;
       }
   }
