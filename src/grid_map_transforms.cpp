@@ -203,8 +203,7 @@ namespace grid_map_transforms{
                                   frontier_cells,
                                   min_frontier_dist_,
                                   min_frontier_size,
-                                  occupancy_layer,
-                                  dist_trans_layer);
+                                  occupancy_layer);
 
     for (size_t i = 0; i < obstacle_cells.size(); ++i){
       const grid_map::Index& point = obstacle_cells[i];
