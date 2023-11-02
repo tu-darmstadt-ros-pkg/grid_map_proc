@@ -105,7 +105,7 @@ RectangleIterator& RectangleIterator::operator++()
 
 bool RectangleIterator::nextStep()
 {
-  if (index_.x() != end_index_.x())
+  if (index_.x() < end_index_.x())
   {
     ++index_.x();
   }
