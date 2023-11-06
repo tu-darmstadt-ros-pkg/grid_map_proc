@@ -179,6 +179,7 @@ namespace grid_map_transforms{
                             std::vector<grid_map::Index>& obstacle_cells,
                             std::vector<grid_map::Index>& frontier_cells,
                             float min_frontier_dist_,
+                            int min_frontier_size,
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer)
   {
@@ -200,7 +201,9 @@ namespace grid_map_transforms{
                                   seed_point,
                                   obstacle_cells,
                                   frontier_cells,
-                                  min_frontier_dist_);
+                                  min_frontier_dist_,
+                                  min_frontier_size,
+                                  occupancy_layer);
 
     for (size_t i = 0; i < obstacle_cells.size(); ++i){
       const grid_map::Index& point = obstacle_cells[i];
@@ -449,7 +452,8 @@ namespace grid_map_transforms{
                                      const grid_map::Index& seed_point,
                                      std::vector<grid_map::Index>& obstacle_cells,
                                      std::vector<grid_map::Index>& frontier_cells,
-                                     float min_frontier_dist_,
+                                     float min_frontier_dist,
+                                     int min_frontier_size,
                                      const std::string occupancy_layer,
                                      const std::string dist_seed_layer)
   {
@@ -472,8 +476,7 @@ namespace grid_map_transforms{
     size_t size_x_lim = grid_map.getSize()(0) -1;
     size_t size_y_lim = grid_map.getSize()(1) -1;
 
-    float adjacent_dist = 0.955;
-    float diagonal_dist = 1.3693;
+    float min_distance_sq = std::pow(min_frontier_dist,2);
 
     while (point_queue.size()){
 
@@ -498,7 +501,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -510,7 +513,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -522,7 +525,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -534,7 +537,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -546,7 +549,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -558,7 +561,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -570,7 +573,7 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
 
       touchObstacleSearchCell(grid_data,
                            expl_layer,
@@ -582,11 +585,10 @@ namespace grid_map_transforms{
                            obstacle_cells,
                            frontier_cells,
                            point_queue,
-                           min_frontier_dist_);
+                           min_distance_sq);
     }
 
-    //std::cout << "o: " << obstacle_cells.size() << " f: " << frontier_cells.size() << "\n";
-
+      filterSmallFrontiersFullySurroundedByKnownCells(expl_layer, frontier_cells, min_frontier_size);
     return true;
   }
 
@@ -658,7 +660,7 @@ namespace grid_map_transforms{
                        std::vector<grid_map::Index>& obstacle_cells,
                        std::vector<grid_map::Index>& frontier_cells,
                        std::queue<grid_map::Index>& point_queue,
-                       float min_distance)
+                       float min_distance_sq)
   {
     // Free
     if ( (grid_map(idx_x, idx_y) == 0.0) ){
@@ -678,16 +680,86 @@ namespace grid_map_transforms{
       }
     // Unknown
     }else{
-      if (expl_trans_map(current_point(0), current_point(1)) == -2.0){
+      if (expl_trans_map(current_point(0), current_point(1)) == -2.0 || expl_trans_map(current_point(0), current_point(1)) == -4.0 ){
         return;
       }else{
         expl_trans_map(current_point(0), current_point(1)) = -2.0;
         // add to frontier if far enough away from robot
         float x_diff = static_cast<float>(current_point(0) - start_point(0)) * resolution;
         float y_diff = static_cast<float>(current_point(1) - start_point(1)) * resolution;
-        if ( std::sqrt(x_diff * x_diff + y_diff * y_diff) > min_distance)
-          frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
+        if ( std::abs(x_diff * x_diff + y_diff * y_diff) > min_distance_sq){
+            expl_trans_map(current_point(0), current_point(1)) = -4.0;
+            frontier_cells.push_back(grid_map::Index(current_point(0), current_point(1)));
+        }
       }
     }
+  }
+
+  void filterSmallFrontiersFullySurroundedByKnownCells(grid_map::Matrix& expl_trans_map,
+                                                       std::vector<grid_map::Index>& frontier_cells,
+                                                       int min_frontier_size)
+  {
+      if(frontier_cells.size()<min_frontier_size)
+          return;
+      if(min_frontier_size <1)
+          return;
+      std::vector<grid_map::Index> new_frontier_cells;
+      //iterate over frontiers_cells all frontier cells and count cells per cluster
+      std::queue<grid_map::Index> point_queue;
+      std::vector<grid_map::Index> frontier_cell_cluster;
+      for(auto& frontier_cell:frontier_cells)
+      {
+          if(expl_trans_map(frontier_cell(0), frontier_cell(1))==-12.0)
+                  continue;
+          frontier_cell_cluster.clear();
+          point_queue.push(frontier_cell);
+          touchFilterCell(expl_trans_map,
+                          frontier_cell,
+                          point_queue,
+                          frontier_cell_cluster);
+          while (!point_queue.empty())
+          {
+              grid_map::Index point = point_queue.front();
+              point_queue.pop();
+              //count connected frontier cells and check that non-frontier neighbors are not unknown
+              for(int i=-1;i<=1;i++)
+              {
+                  for(int j=-1;j<=1;j++)
+                  {
+                      if(i==0 && j==0) continue;
+                      touchFilterCell(expl_trans_map,
+                                      {point[0]+i,point[1]+j},
+                                      point_queue,
+                                      frontier_cell_cluster);
+                  }
+              }
+          }
+          if(frontier_cell_cluster.size() > min_frontier_size)
+          {
+              for(const auto& cell:frontier_cell_cluster){
+                  new_frontier_cells.push_back(cell);
+              }
+          }
+      }
+      if(new_frontier_cells.empty())
+      {
+          ROS_WARN_STREAM("After filtering small frontiers, no frontiers left -> using unfiltered frontiers");
+          return;
+      }
+      frontier_cells = new_frontier_cells;
+  }
+
+  void touchFilterCell(grid_map::Matrix& expl_trans_map,
+                       const grid_map::Index& index,
+                       std::queue<grid_map::Index>& point_queue,
+                       std::vector<grid_map::Index>& frontier_cell_cluster){
+      if(expl_trans_map(index(0), index(1)) == -4.0) {
+          point_queue.push(index);
+          frontier_cell_cluster.emplace_back(index);
+          //mark cell so that it is not found again
+          // (if expl_trans_map is needed again, undo after
+          // filterSmallFrontiersFullySurroundedByKnownCells for all frontier cells)
+          expl_trans_map(index(0), index(1)) = -12.0;
+      }
   }
 } /* namespace */
