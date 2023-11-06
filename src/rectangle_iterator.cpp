@@ -16,6 +16,14 @@ namespace grid_map_proc
 RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_map::Polygon& rectangle_polygon)
   : past_end_{ false }
 {
+  // @TODO: Improve this iterator to support also non-default start index
+  if (!map.isDefaultStartIndex())
+  {
+    std::string error{ "RectangleIterator cannot be used with grid maps that don't have a default buffer start index." };
+    ROS_FATAL_STREAM(error);
+    throw std::runtime_error(error);
+  }
+
   std::vector<grid_map::Position> vertices = rectangle_polygon.getVertices();
   if (vertices.size() != 4U)
   {
@@ -25,20 +33,20 @@ RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_ma
   }
 
   const grid_map::Position& front_point = vertices.front();
-  double min_x = front_point.x();
-  double max_x = front_point.x();
+  double top_left_x = front_point.x();
+  double top_left_y = front_point.y();
 
-  double min_y = front_point.y();
-  double max_y = front_point.y();
+  double bottom_right_x = front_point.x();
+  double bottom_right_y = front_point.y();
 
   for (uint8_t i = 1; i < 4U; ++i)
   {
     const grid_map::Position& point = vertices.at(i);
-    min_x = std::min(min_x, point.x());
-    max_x = std::max(max_x, point.x());
+    top_left_x = std::min(top_left_x, point.x());
+    top_left_y = std::min(top_left_y, point.y());
 
-    min_y = std::min(min_y, point.y());
-    max_y = std::max(max_y, point.y());
+    bottom_right_x = std::max(bottom_right_x, point.x());
+    bottom_right_y = std::max(bottom_right_y, point.y());
   }
 
   std::sort(vertices.begin(), vertices.end(),
@@ -74,8 +82,8 @@ RectangleIterator::RectangleIterator(const grid_map::GridMap& map, const grid_ma
   };
 
   // Position coordinates and index directions are flipped
-  start_index_ = get_index(max_x, max_y);
-  end_index_ = get_index(min_x, min_y);
+  start_index_ = get_index(bottom_right_x, bottom_right_y);
+  end_index_ = get_index(top_left_x, top_left_y);
 
   const grid_map::Vector map_center = 0.5 * map.getLength();
   map_offset_ = (map_center.array() - 0.5 * map.getResolution()).matrix();
@@ -105,7 +113,7 @@ RectangleIterator& RectangleIterator::operator++()
 
 bool RectangleIterator::nextStep()
 {
-  if (index_.x() != end_index_.x())
+  if (index_.x() < end_index_.x())
   {
     ++index_.x();
   }
