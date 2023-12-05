@@ -40,6 +40,15 @@ namespace grid_map_transforms{
                               const std::string occupancy_layer = "occupancy",
                               const std::string dist_trans_layer = "distance_transform");
 
+    bool addFlux(grid_map::GridMap& grid_map,
+                 int radius_cells,
+                 const std::string& dist_trans_layer = "distance_transform",
+                 const std::string& flux_layer = "flux");
+
+    bool addSkeleton(grid_map::GridMap& grid_map,
+                 const std::string& input_layer = "input",
+                 const std::string& skeleton_layer = "skeleton");
+
     bool addExplorationTransform(grid_map::GridMap& grid_map,
                             const std::vector<grid_map::Index>& goal_points,
                             const float lethal_dist = 4.0,
