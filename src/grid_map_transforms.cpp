@@ -5,6 +5,68 @@
 
 namespace grid_map_transforms {
 
+  bool addInflatedLayerNonBinary(grid_map::GridMap &grid_map,
+                      const float inflation_radius_map_cells,
+                      const std::string occupancy_layer,
+                      const std::string inflated_occupancy_layer) {
+  if (!grid_map.exists(occupancy_layer))
+    return false;
+
+  grid_map::Matrix &grid_data = grid_map[occupancy_layer];
+
+  cv::Mat map_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+
+  uchar *input = (uchar *) (map_mat.data);
+
+  size_t size_x = grid_map.getSize()(0);
+  size_t size_y = grid_map.getSize()(1);
+
+  for (size_t idx_x = 0; idx_x < size_x; ++idx_x) {
+    for (size_t idx_y = 0; idx_y < size_y; ++idx_y) {
+      bool valid = false;
+      if( (!isnan(grid_data(idx_x, idx_y))) &&(grid_data(idx_x, idx_y) > 1.0E-5) && (grid_data(idx_x, idx_y) < 200)) {
+        valid = true;
+      }
+      input[map_mat.cols * idx_x + idx_y] = valid ? 255 : 0;
+    }
+  }
+
+  grid_map.add(inflated_occupancy_layer);
+  grid_map::Matrix &data_inflated(grid_map[inflated_occupancy_layer]);
+
+  int erosion_type = cv::MORPH_ELLIPSE;
+  int erosion_size = inflation_radius_map_cells;
+  cv::Mat element = cv::getStructuringElement(erosion_type,
+                                              cv::Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+                                              cv::Point(erosion_size, erosion_size));
+
+  cv::Mat inflated_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+  uchar *inflated_map_p = (uchar *) (inflated_mat.data);
+
+  cv::dilate(map_mat, inflated_mat, element);
+
+  for (size_t idx_x = 0; idx_x < size_x; ++idx_x) {
+    for (size_t idx_y = 0; idx_y < size_y; ++idx_y) {
+
+      bool valid = false;
+      if( (!isnan(grid_data(idx_x, idx_y))) &&(grid_data(idx_x, idx_y) > 1.0E-5) && (grid_data(idx_x, idx_y) < 200)) {
+        valid = true;
+      }
+
+
+      if (inflated_map_p[map_mat.cols * idx_x + idx_y] != 0) {
+        // If free space and inflated in dilated map, mark occupied
+        data_inflated(idx_x, idx_y) = 0.0;
+      } else {
+        // Otherwise copy old map
+        data_inflated(idx_x, idx_y) = 100.0;
+      }
+    }
+  }
+
+  return true;
+}
+
 bool addInflatedLayer(grid_map::GridMap &grid_map,
                       const float inflation_radius_map_cells,
                       const std::string occupancy_layer,
@@ -316,7 +378,7 @@ bool addFlux(grid_map::GridMap &grid_map,
       for (int vertical_shift = - radius_cells + 1; vertical_shift < radius_cells; ++vertical_shift) {
         const grid_map::Index
             index_sample = {index_center.x() + horizontal_side_shift, index_center.y() + vertical_shift};
-        bool valid_index =
+        bool valid_index = IndexInSubmapRange(grid_map, index_sample) &&
             grid_map.isValid(index_sample, dist_trans_layer);
         if (!valid_index) {
           valid_estimate = false;
@@ -335,7 +397,7 @@ bool addFlux(grid_map::GridMap &grid_map,
       for (int horizontal_shift  = - radius_cells + 1; horizontal_shift < radius_cells; ++horizontal_shift) {
         const grid_map::Index
             index_sample = {index_center.x() + horizontal_shift, index_center.y() + vertical_side_shift};
-        bool valid_index =
+        bool valid_index = IndexInSubmapRange(grid_map, index_sample) &&
             grid_map.isValid(index_sample, dist_trans_layer);
         if (!valid_index) {
           valid_estimate = false;
@@ -409,7 +471,9 @@ bool addSkeleton(grid_map::GridMap& grid_map,
 
   for(int ix = 0; ix<input_mat.rows; ++ix) {
     for(int iy = 0; iy<input_mat.cols; ++iy) {
-      input_mat.at<u_int8_t>(ix, iy) = (grid_data(ix, iy)) == 100.0 ? 255 : 0;
+      // ROS_INFO("%f", grid_data(ix, iy));
+      input_mat.at<u_int8_t>(ix, iy) =  std::abs(grid_data(ix, iy)) < 1.0E-7  ? 255 : 0;
+      // input_mat.at<u_int8_t>(ix, iy) = (grid_data(ix, iy)) == 100.0 ? 255 : 0;
     }
   }
 
@@ -875,4 +939,13 @@ void touchFilterCell(grid_map::Matrix &expl_trans_map,
     expl_trans_map(index(0), index(1)) = -12.0;
   }
 }
+
+bool IndexInSubmapRange( const grid_map::GridMap &grid_map,
+                         const grid_map::Index &sample_index ) {
+  size_t size_x = grid_map.getSize()( 0 );
+  size_t size_y = grid_map.getSize()( 1 );
+  return ( sample_index.x() >= 0 && sample_index.y() >= 0 && sample_index.x() < size_x &&
+      sample_index.y() < size_y );
+}
+
 } /* namespace */

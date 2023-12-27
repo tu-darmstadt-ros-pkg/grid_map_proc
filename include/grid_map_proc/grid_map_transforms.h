@@ -17,6 +17,12 @@ namespace grid_map_transforms{
      * Adds a inflated layer to the provided grid_map.
      * Note inflation radius is given in map cells.
      */
+
+    bool addInflatedLayerNonBinary(grid_map::GridMap &grid_map,
+                      const float inflation_radius_map_cells,
+                      const std::string occupancy_layer,
+                      const std::string inflated_occupancy_layer);
+
     bool addInflatedLayer(grid_map::GridMap& map,
                                        const float inflation_radius_map_cells = 6.0,
                                        const std::string occupancy_layer = "occupancy",
@@ -121,4 +127,8 @@ namespace grid_map_transforms{
                          const grid_map::Index& index,
                          std::queue<grid_map::Index>& point_queue,
                          std::vector<grid_map::Index>& frontier_cell_cluster);
+
+
+    bool IndexInSubmapRange( const grid_map::GridMap &grid_map,
+                                            const grid_map::Index &sample_index );
 } /* namespace */
