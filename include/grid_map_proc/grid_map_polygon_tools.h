@@ -25,9 +25,6 @@ namespace grid_map_polygon_tools{
   // Symmetric polygon around footprint
   void setFootprintPoly(const double footprint_x, const double footprint_y, grid_map::Polygon& poly, const std::string& frame_id = "base_link");
 
-  // Poly from 2 corner points
-  void setFootprintPoly(const Eigen::Vector2d& bottom_left, const Eigen::Vector2d& top_right, grid_map::Polygon& poly, const std::string& frame_id = "base_link");
-
   void printPolyInfo(const grid_map::Polygon& poly);
 
 
