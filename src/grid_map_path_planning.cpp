@@ -415,6 +415,63 @@ namespace grid_map_path_planning{
     return true;
   }
 
+  bool findCloseIndexMatchingCriteria(const grid_map::GridMap& grid_map, const grid_map::Index& start_index,
+                                      StoppingCriteria criteria, grid_map::Index& close_index,
+                                      const double max_distance_from_start_in_cells)
+  {
+    std::vector<grid_map::Index> directions = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+
+    // Create a queue for BFS
+    std::queue<grid_map::Index> queue;
+    queue.push(start_index);
+
+    std::set<grid_map::Index, IndexComparator> visited;
+    visited.insert(start_index);
+
+    while (!queue.empty())
+    {
+
+      grid_map::Index current_index = queue.front();
+      queue.pop();
+
+      // Check if the current cell meets the stopping criteria
+      if (criteria(grid_map, start_index, current_index))
+      {
+        close_index = current_index;
+        return true;
+      }
+
+      // Add neighbors to queue and visited list to avoid adding them twice
+      for (const auto& direction : directions)
+      {
+
+        grid_map::Index neighbor_index = current_index + direction;
+
+        bool isInside = neighbor_index(0) >= 0 && neighbor_index(0) < grid_map.getSize()[0] &&
+                        neighbor_index(1) >= 0 && neighbor_index(1) < grid_map.getSize()[1];
+
+        if (isInside && visited.find(neighbor_index) == visited.end())
+        {
+          // Skip if the cell is too far from the start
+          if (max_distance_from_start_in_cells > 0)
+          {
+            double distance = (Eigen::Vector2d((neighbor_index - start_index).cast<double>())).norm();
+            if (distance > max_distance_from_start_in_cells)
+            {
+              continue;
+            }
+          }
+
+          queue.push(neighbor_index);
+          visited.insert(neighbor_index);
+        }
+      }
+    }
+
+    // Return false if no cell meets the criteria
+    return false;
+  }
+
   bool shortCutPath(grid_map::GridMap& grid_map,
                     const std::vector <grid_map::Index>& path_in,
                     std::vector <grid_map::Index>& path_out,
