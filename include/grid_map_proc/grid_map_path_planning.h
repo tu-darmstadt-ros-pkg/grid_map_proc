@@ -41,6 +41,39 @@ namespace grid_map_path_planning{
                             const std::string dist_trans_layer = "distance_transform",
                             const std::string expl_trans_layer = "exploration_transform");
 
+    /**
+     * @brief Stopping criteria for the findCloseIndexMatchingCriteria function.
+     * @param grid_map The grid map.
+     * @param start_index The start index.
+     * @param current_index The current index.
+     */
+    using StoppingCriteria = std::function<bool(const grid_map::GridMap& grid_map, const grid_map::Index& start_index,
+                                                const grid_map::Index& current_index)>;
+
+    struct IndexComparator
+    {
+      bool operator()(const grid_map::Index& lhs, const grid_map::Index& rhs) const
+      {
+        if (lhs[0] != rhs[0])
+        {
+          return lhs[0] < rhs[0];
+        }
+        return lhs[1] < rhs[1];
+      }
+    };
+
+    /**
+     * @brief Find a close cell (index) that meets the given criteria using a BFS algorithm.
+     *
+     * @param criteria The criteria to be met by the close cell. See StoppingCriteria.
+     * @param close_index The resulting close cell index.
+     * @param max_distance_from_start_in_cells The maximum distance from the start cell in cells. If <= 0, the search is
+     * unbounded.
+     */
+    bool findCloseIndexMatchingCriteria(const grid_map::GridMap& grid_map, const grid_map::Index& start_index,
+                                        StoppingCriteria criteria, grid_map::Index& close_index,
+                                        const double max_distance_from_start_in_cells = 0.0);
+
     bool shortCutPath(grid_map::GridMap& grid_map,
                       const std::vector <grid_map::Index>& path_in,
                       std::vector <grid_map::Index>& path_out,
