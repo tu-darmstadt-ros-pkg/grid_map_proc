@@ -112,4 +112,23 @@ namespace grid_map_transforms{
                          const grid_map::Index& index,
                          std::queue<grid_map::Index>& point_queue,
                          std::vector<grid_map::Index>& frontier_cell_cluster);
+
+
+    class InflatedLayerProvider
+    {
+      public:
+        bool addInflatedLayer(grid_map::GridMap& map,
+                                       const float inflation_radius_map_cells = 6.0,
+                                       const std::string occupancy_layer = "occupancy",
+                                       const std::string inflated_occupancy_layer = "occupancy_inflated");
+
+      protected:
+
+        void ensureMatSize(cv::Mat& mat, int rows, int cols, int type);
+
+        cv::Mat map_mat_;
+        cv::Mat inflated_mat_;
+
+    };
+    
 } /* namespace */

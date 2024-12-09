@@ -762,4 +762,80 @@ namespace grid_map_transforms{
           expl_trans_map(index(0), index(1)) = -12.0;
       }
   }
+
+
+  void InflatedLayerProvider::ensureMatSize(cv::Mat& mat, int rows, int cols, int type)
+  {
+    if (mat.rows != rows || mat.cols != cols || mat.type() != type) {
+      mat = cv::Mat(rows, cols, type);
+    }
+  }
+        
+
+  bool InflatedLayerProvider::addInflatedLayer(grid_map::GridMap& grid_map,
+                                     const float inflation_radius_map_cells,
+                                     const std::string occupancy_layer,
+                                     const std::string inflated_occupancy_layer)
+  {
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    ensureMatSize(map_mat_, grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+    map_mat_.setTo(cv::Scalar::all(0));
+
+    uchar *input = (uchar*)(map_mat_.data);
+
+    size_t size_x = grid_map.getSize()(0);
+    size_t size_y = grid_map.getSize()(1);
+
+    for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
+      for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
+        //input[map_mat_.cols * idx_x + idx_y] = (grid_data(idx_x, idx_y)) == 100.0 ? 255 : 0 ;
+        if (grid_data(idx_x, idx_y) == 100.0)
+        {
+          input[map_mat_.cols * idx_x + idx_y] = 255;
+        }
+      }
+    }
+
+    grid_map.add(inflated_occupancy_layer);
+    grid_map::Matrix& data_inflated (grid_map[inflated_occupancy_layer]);
+
+    int erosion_type = cv::MORPH_ELLIPSE;
+    int erosion_size = inflation_radius_map_cells;
+    cv::Mat element = cv::getStructuringElement( erosion_type,
+                                                 cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                                 cv::Point( erosion_size, erosion_size ) );
+
+    //cv::Mat inflated_mat = cv::Mat(grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+
+    ensureMatSize(inflated_mat_, grid_map.getSize()(0), grid_map.getSize()(1), CV_8UC1);
+    cv::dilate(map_mat_, inflated_mat_, element);
+
+    uchar *inflated_map_p = (uchar*)(inflated_mat_.data);
+
+    for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
+      for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
+
+        if (grid_data (idx_x, idx_y) != 0.0){
+          // If not free space, copy old map
+          data_inflated(idx_x, idx_y) = grid_data(idx_x, idx_y);
+        }else{
+
+          if (inflated_map_p[map_mat_.cols * idx_x + idx_y] != 0){
+            // If free space and inflated in dilated map, mark occupied
+            data_inflated(idx_x, idx_y) = 100.0;
+          }else{
+            // Otherwise copy old map
+            data_inflated(idx_x, idx_y) = grid_data (idx_x, idx_y);
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
 } /* namespace */
