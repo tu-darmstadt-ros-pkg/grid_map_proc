@@ -122,7 +122,7 @@ namespace grid_map_transforms{
 
     return true;
   }
-  
+
   bool addDistanceTransformCv(grid_map::GridMap& grid_map,
                               const std::string occupancy_layer,
                               const std::string dist_trans_layer)
@@ -763,19 +763,18 @@ namespace grid_map_transforms{
       }
   }
 
-
   void InflatedLayerProvider::ensureMatSize(cv::Mat& mat, int rows, int cols, int type)
   {
     if (mat.rows != rows || mat.cols != cols || mat.type() != type) {
       mat = cv::Mat(rows, cols, type);
     }
   }
-        
 
   bool InflatedLayerProvider::addInflatedLayer(grid_map::GridMap& grid_map,
                                      const float inflation_radius_map_cells,
                                      const std::string occupancy_layer,
-                                     const std::string inflated_occupancy_layer)
+                                     const std::string inflated_occupancy_layer,
+                                     const int erosion_type)
   {
     if (!grid_map.exists(occupancy_layer))
       return false;
@@ -793,7 +792,7 @@ namespace grid_map_transforms{
     for (size_t idx_x = 0; idx_x < size_x; ++idx_x){
       for (size_t idx_y = 0; idx_y < size_y; ++idx_y){
         //input[map_mat_.cols * idx_x + idx_y] = (grid_data(idx_x, idx_y)) == 100.0 ? 255 : 0 ;
-        if (grid_data(idx_x, idx_y) == 100.0)
+        if (grid_data(idx_x, idx_y) == OBSTACLE_VALUE)
         {
           input[map_mat_.cols * idx_x + idx_y] = 255;
         }
@@ -803,7 +802,6 @@ namespace grid_map_transforms{
     grid_map.add(inflated_occupancy_layer);
     grid_map::Matrix& data_inflated (grid_map[inflated_occupancy_layer]);
 
-    int erosion_type = cv::MORPH_ELLIPSE;
     int erosion_size = inflation_radius_map_cells;
     cv::Mat element = cv::getStructuringElement( erosion_type,
                                                  cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),
@@ -826,16 +824,113 @@ namespace grid_map_transforms{
 
           if (inflated_map_p[map_mat_.cols * idx_x + idx_y] != 0){
             // If free space and inflated in dilated map, mark occupied
-            data_inflated(idx_x, idx_y) = 100.0;
+            data_inflated(idx_x, idx_y) = OBSTACLE_VALUE;
           }else{
-            // Otherwise copy old map
-            data_inflated(idx_x, idx_y) = grid_data (idx_x, idx_y);
+            data_inflated(idx_x, idx_y) = 0.0;
           }
         }
       }
     }
 
     return true;
+  }
+
+  bool InflatedLayerProvider::addSoftInflatedLayer(grid_map::GridMap& grid_map, const float inflation_radius_map_cells,
+                                                   const std::string& occupancy_layer,
+                                                   const std::string& soft_inflated_layer, const int downsample_factor,
+                                                   DecayType decay_type, const float exp_decay_alpha)
+  {
+    if (!grid_map.exists(occupancy_layer))
+    {
+      return false;
+    }
+
+    const int size_x = grid_map.getSize()(0);  // cols (width)
+    const int size_y = grid_map.getSize()(1);  // rows (height)
+
+    // Compute size of the downsampled grid (ceil division)
+    const int ds_size_x = (size_x + downsample_factor - 1) / downsample_factor;
+    const int ds_size_y = (size_y + downsample_factor - 1) / downsample_factor;
+
+    // Allocate and clear downsampled binary map (0 = obstacle, 255 = free)
+    ensureMatSize(map_mat_, ds_size_y, ds_size_x, CV_8UC1);
+    map_mat_.setTo(cv::Scalar::all(255));  // initialize as free space
+
+    const grid_map::Matrix& grid_data = grid_map[occupancy_layer];
+
+    // Downsampled iteration over occupancy to populate binary map
+    for (int y = 0, dy = 0; y < size_y; y += downsample_factor, ++dy)
+    {
+      uchar* row_ptr = map_mat_.ptr<uchar>(dy);
+      for (int x = 0, dx = 0; x < size_x; x += downsample_factor, ++dx)
+      {
+        if (grid_data(x, y) == OBSTACLE_VALUE)
+          row_ptr[dx] = 0;  // mark as obstacle
+      }
+    }
+
+    if (!grid_map.exists(soft_inflated_layer))
+    {
+      grid_map.add(soft_inflated_layer);
+    }
+    grid_map::Matrix& soft_layer = grid_map[soft_inflated_layer];
+
+    ensureMatSize(soft_inflated_mat_, ds_size_y, ds_size_x, CV_32FC1);
+    cv::distanceTransform(map_mat_, soft_inflated_mat_, cv::DIST_L2, 3);
+
+    float* soft_inflated_mat_p = soft_inflated_mat_.ptr<float>();
+
+    // Map distance to 0-OBSTACLE_VALUE cost
+    const float max_dist = (inflation_radius_map_cells > 0.0f) ? inflation_radius_map_cells :
+                                                                 static_cast<float>(std::min(size_x, size_y)) / 2.0f;
+
+    for (int y = 0; y < size_y; ++y)
+    {
+      const int y_ds = y / downsample_factor;
+      for (int x = 0; x < size_x; ++x)
+      {
+        const int x_ds = x / downsample_factor;
+
+        if (grid_data(x, y) != 0.0f)
+        {
+          // Preserve obstacles and non-zero special markings (e.g., 20, 120)
+          soft_layer(x, y) = grid_data(x, y);
+        }
+        else
+        {
+          // Map normalized distance to inverse cost: closer = higher cost
+          float dist = soft_inflated_mat_.at<float>(y_ds, x_ds) * downsample_factor;
+          soft_layer(x, y) = computeCost(dist, max_dist, decay_type, exp_decay_alpha);
+        }
+      }
+    }
+
+    return true;
+  }
+
+  inline float InflatedLayerProvider::computeCost(float dist, float max_dist, DecayType decay_type,
+                                                  float exp_decay_alpha)
+  {
+    if (dist >= max_dist)
+      return 0.0f;
+
+    float ratio = dist / max_dist;
+
+    switch (decay_type)
+    {
+      case DecayType::Exponential:
+        return (exp_decay_alpha == 0.0f) ? OBSTACLE_VALUE : OBSTACLE_VALUE * std::exp(-exp_decay_alpha * ratio);
+      case DecayType::Quadratic: {
+        float decay = 1.0f - ratio;
+        return OBSTACLE_VALUE * decay * decay;
+      }
+      case DecayType::Linear:
+        return OBSTACLE_VALUE * (1.0f - ratio);
+      case DecayType::Binary:
+        return OBSTACLE_VALUE;
+      default:
+        return 0.0f;
+    }
   }
 
 } /* namespace */
