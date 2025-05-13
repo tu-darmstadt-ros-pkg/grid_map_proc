@@ -27,9 +27,8 @@ namespace grid_map_transforms{
                                        const std::string occupancy_layer = "occupancy",
                                        const std::string deflated_occupancy_layer = "occupancy_deflated");
 
-    bool addDistanceTransformCv(grid_map::GridMap& grid_map,
-                            const std::string occupancy_layer = "occupancy",
-                            const std::string dist_trans_layer = "distance_transform");
+    bool addDistanceTransformCv(grid_map::GridMap& grid_map, const std::string occupancy_layer = "occupancy",
+                                const std::string dist_trans_layer = "distance_transform");
 
     bool addDistanceTransform(grid_map::GridMap& grid_map,
                               const grid_map::Index& seed_point,
@@ -117,17 +116,51 @@ namespace grid_map_transforms{
     class InflatedLayerProvider
     {
       public:
+        static constexpr float OBSTACLE_VALUE = 100.0f;
+
+        enum class DecayType
+        {
+          Exponential,
+          Quadratic,
+          Linear,
+          Binary
+        };
+
         bool addInflatedLayer(grid_map::GridMap& map,
                                        const float inflation_radius_map_cells = 6.0,
                                        const std::string occupancy_layer = "occupancy",
-                                       const std::string inflated_occupancy_layer = "occupancy_inflated");
+                                       const std::string inflated_occupancy_layer = "occupancy_inflated",
+                                       const int erosion_type = cv::MORPH_ELLIPSE);
+
+        /**
+         * @brief Adds a soft-inflated occupancy layer using distance transform and decay-based cost mapping.
+         *
+         * Computes distance to obstacles in the given occupancy layer and maps it to cost values using the
+         * selected decay function. The resulting cost layer is added to the grid map. Original obstacle and
+         * special values are preserved.
+         *
+         * @param inflation_radius_map_cells  Max inflation distance (in cells) beyond which cost is zero.
+         * @param occupancy_layer        Input occupancy layer name.
+         * @param soft_inflated_layer    Output soft-inflated layer name.
+         * @param downsample_factor      Factor to downsample for distance transform (≥ 1).
+         * @param decay_type             Decay type: Exponential, Quadratic, Linear, or Binary.
+         * @param exp_decay_alpha        Alpha value for exponential decay. Ignored for other decay types.
+         * @return true if layer added successfully; false if occupancy_layer is missing.
+         */
+        bool addSoftInflatedLayer(grid_map::GridMap& grid_map, const float inflation_radius_map_cells = 0.0,
+                                  const std::string& occupancy_layer = "occupancy",
+                                  const std::string& soft_inflated_layer = "occupancy_soft_inflated",
+                                  const int downsample_factor = 1, DecayType decay_type = DecayType::Exponential,
+                                  const float exp_decay_alpha = 2.77);
 
       protected:
 
         void ensureMatSize(cv::Mat& mat, int rows, int cols, int type);
+        static inline float computeCost(float dist, float max_dist, DecayType decay_type, float exp_decay_alpha);
 
         cv::Mat map_mat_;
         cv::Mat inflated_mat_;
+        cv::Mat soft_inflated_mat_;
 
     };
     
