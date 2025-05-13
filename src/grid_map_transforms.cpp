@@ -878,8 +878,6 @@ namespace grid_map_transforms{
     ensureMatSize(soft_inflated_mat_, ds_size_y, ds_size_x, CV_32FC1);
     cv::distanceTransform(map_mat_, soft_inflated_mat_, cv::DIST_L2, 3);
 
-    float* soft_inflated_mat_p = soft_inflated_mat_.ptr<float>();
-
     // Map distance to 0-OBSTACLE_VALUE cost
     const float max_dist = (inflation_radius_map_cells > 0.0f) ? inflation_radius_map_cells :
                                                                  static_cast<float>(std::min(size_x, size_y)) / 2.0f;
