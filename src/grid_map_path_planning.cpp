@@ -153,7 +153,8 @@ namespace grid_map_path_planning{
 
     std::vector <grid_map::Index> refined_path_indices;
 
-    shortCutPath(grid_map, path_indices, refined_path_indices);
+    shortCutPath(grid_map, path_indices, refined_path_indices,
+                 dist_trans_layer, expl_trans_layer, occupancy_layer);
 
     path_indices = refined_path_indices;
 
@@ -476,7 +477,8 @@ namespace grid_map_path_planning{
                     const std::vector <grid_map::Index>& path_in,
                     std::vector <grid_map::Index>& path_out,
                     const std::string dist_trans_layer,
-                    const std::string expl_trans_layer)
+                    const std::string expl_trans_layer,
+                    const std::string occupancy_layer)
   {
     if (path_in.size() < 2){
       path_out = path_in;
@@ -485,6 +487,7 @@ namespace grid_map_path_planning{
 
     grid_map::Matrix& dist_data = grid_map[dist_trans_layer];
     grid_map::Matrix& expl_data = grid_map[expl_trans_layer];
+    grid_map::Matrix& occupancy_data = grid_map[occupancy_layer];
 
     path_out.reserve(path_in.size());
     path_out.push_back(path_in[0]);
@@ -504,7 +507,7 @@ namespace grid_map_path_planning{
         const grid_map::Index& test_index = path_in[test_idx];
 
         //std::cout << "idx: " << idx << " test_idx: " << test_idx << " size: " << path_in.size() << " \n";
-        if (!shortCutValid(grid_map, dist_data, current_index, test_index)){
+        if (!shortCutValid(grid_map, dist_data, occupancy_data, current_index, test_index)){
           idx = test_idx-1;
           break;
         }else{

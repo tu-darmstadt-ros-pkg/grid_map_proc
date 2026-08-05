@@ -78,7 +78,8 @@ namespace grid_map_path_planning{
                       const std::vector <grid_map::Index>& path_in,
                       std::vector <grid_map::Index>& path_out,
                       const std::string dist_trans_layer = "distance_transform",
-                      const std::string expl_trans_layer = "exploration_transform");
+                      const std::string expl_trans_layer = "exploration_transform",
+                      const std::string occupancy_layer = "occupancy");
 
 
     void touchDistanceField(const grid_map::Matrix& dist_trans_map,
@@ -126,6 +127,7 @@ namespace grid_map_path_planning{
 
     bool shortCutValid(const grid_map::GridMap& grid_map,
                       const grid_map::Matrix& dist_trans_map,
+                      const grid_map::Matrix& occupancy_map,
                       const grid_map::Index& start_point,
                       const grid_map::Index& end_point)
     {
@@ -135,8 +137,22 @@ namespace grid_map_path_planning{
 
          const grid_map::Index index(*iterator);
 
-         if ( (dist_trans_map(index(0), index(1)) < 11.0) &&
-              !( (index(0) == end_point(0)) && (index(1) == end_point(1))) ){
+         bool is_end_point = (index(0) == end_point(0)) && (index(1) == end_point(1));
+
+         // Reject the shortcut outright if it runs through a cell that is not
+         // confirmed free (occupied OR unknown/NaN). This is required in addition
+         // to the distance_transform check below: distance_transform is only
+         // populated (via BFS) for obstacle cells that border reachable free space
+         // and for free cells reached from there. Cells that are never touched by
+         // that wavefront (e.g. the interior of a thick wall, or an obstacle
+         // surrounded by unknown/NaN space) are left at FLT_MAX, which incorrectly
+         // passes the "< 11.0" check below and would let a shortcut cut straight
+         // through such an obstacle.
+         if ( (occupancy_map(index(0), index(1)) != 0.0) && !is_end_point ){
+           return false;
+         }
+
+         if ( (dist_trans_map(index(0), index(1)) < 11.0) && !is_end_point ){
            return false;
          }
 
