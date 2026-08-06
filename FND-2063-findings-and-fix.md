@@ -46,6 +46,77 @@ path.
 engineer; this work reproduced it independently and implemented + verified the
 fix.)
 
+### Why this can really happen in practice (not just a contrived test map)
+
+It's reasonable to ask: the mission path is generated one grid cell at a time
+via gradient descent on `exploration_transform`
+([src/grid_map_transforms.cpp](src/grid_map_transforms.cpp)), so doesn't that
+dense, cell-by-cell path already avoid the obstacle on its own — before
+`shortCutPath` ever gets a chance to shortcut it?
+
+It does avoid it — but that's exactly what sets up the bug, not what prevents
+it. Both `addDistanceTransform`'s `touchDistCell` and
+`addExplorationTransform`'s `touchExplorationCell` reject a cell outright if
+it isn't exactly free:
+
+```cpp
+//If not free at cell, return right away
+if (grid_map(idx_x, idx_y) != 0)
+  return;
+```
+
+(`NaN != 0` is also `true` under IEEE-754, so this excludes occupied *and*
+unknown/NaN cells alike.) So `exploration_transform` is a wavefront that only
+ever spreads through free, explored cells — it flows *around* any obstacle or
+unexplored blob like water around an island, never through it. The dense,
+per-cell path (gradient descent on that field) inherits the same property:
+every single waypoint it visits is guaranteed free.
+
+The problem is what happens on the far side of that detour. Picture the
+wavefront wrapping around a "peninsula" of unknown space with a real,
+previously-glimpsed obstacle buried inside it:
+
+```
+                    +---------------------------+
+                    |     unknown / unexplored   |
+                    |     (never reached by      |
+                    |      the BFS wavefront)    |
+                    |                             |
+              ______|      +-----------+          |______
+             /       \     |   ####    |         /        \
+   free     /         \    |   ####    |        /          \    free
+  space -- P ---------- \  +-----------+  / ---------------- Q -- space
+            \            \_______________/                /
+             \___________________________________________/
+
+   dense path: ... -> P -> (long way around the peninsula) -> Q -> ...
+   P and Q are far apart in PATH INDEX / arc-length, but geometrically close.
+   shortCutPath tries connecting them directly - the straight line crosses
+   straight through the unexplored pocket and the "####" obstacle inside it.
+```
+
+The dense path has to travel a long way *around* the island by cell-count,
+but the two sides of that detour (`P` and `Q`) can be geometrically very
+close in a straight line — the island sits right between them.
+`shortCutPath`'s inner loop doesn't care about arc-length or path index; it
+tries every `test_idx` from `idx+2` up to the end of the path, so it will
+happily propose connecting two waypoints from opposite sides of the detour.
+Before the fix, the only thing standing between "propose" and "accept" was
+`dist_trans_map < 11.0` — which is blind to exactly this island's interior,
+since the BFS never reached it.
+
+So the realistic real-world trigger isn't a contrived test map, it's any of:
+- A pillar/box/hazard that's been *seen* (occupied cells marked from a
+  distance, e.g. a single lidar hit) but whose surroundings haven't been
+  driven close enough to for the BFS to link it to reachable free space yet
+  (partially-explored map).
+- Any frontier/peninsula shape in the map where free space wraps around a
+  concave, unexplored pocket.
+
+This also matches the ticket's own attached reproduction screenshot
+("isolated wall in NaN sea"), confirming it as an observed real-mission
+pattern rather than a purely theoretical one.
+
 ## Fix
 
 Added an explicit occupancy check in `shortCutValid()`, evaluated *before* the
@@ -96,6 +167,77 @@ Run with:
 ```bash
 catkin build grid_map_proc --force-cmake
 devel/.private/grid_map_proc/lib/grid_map_proc/grid_map_proc_tests "[FND-2063]" -s
+```
+
+### Test scenario schematic
+
+Map layout (illustrative, not to exact cell scale — see the test source for
+exact coordinates):
+
+```
+Legend:
+  .  free space            (occupancy == 0.0)
+  ?  unknown / unexplored  (NaN)
+  #  obstacle island       (occupancy == 100.0), isolated inside the NaN blob
+  A  path_in[0] - start waypoint   (free space, left of the blob)
+  B  path_in[1] - detour waypoint  (free space, below the blob)
+  C  path_in[2] - end waypoint     (free space, right of the blob)
+```
+
+**Before the fix — rejected only by luck, not by design:** a naive shortcut
+straight from `A` to `C` cuts directly through the isolated obstacle `#`.
+`distance_transform` at `#` is `FLT_MAX` (the BFS never reaches it, since it
+never borders reachable free space), so the old `dist < 11.0` check alone
+never rejects it:
+
+```
+              +-------------- NaN blob (?) ----------------+
+              |                                            |
+              |              +-----------+                 |
+              |              |   ####    |  <- obstacle,   |
+   A - - - - -| - - - - - - -|-- #### ---|- - - - - - - - -|- - - - - C
+              |              |   ####    |     always      |
+              |              +-----------+   FLT_MAX        |
+              |                                            |
+              +--------------------------------------------+
+
+   A ------------------- straight-line shortcut ------------------ C
+   cuts directly through "####".  shortCutValid() used to accept this
+   because dist_trans_map(#) == FLT_MAX, and FLT_MAX < 11.0 is false.
+```
+
+**After the fix — `B` is required, the shortcut through `#` is rejected:**
+the new occupancy check in `shortCutValid()` rejects *any* line through a
+non-free cell (occupied or NaN), regardless of its `distance_transform`
+value, so the planner must keep the detour waypoint `B`:
+
+```
+              +-------------- NaN blob (?) ----------------+
+              |                                            |
+              |              +-----------+                 |
+   A          |              |   ####    |                 |          C
+    \         |              +-----------+                 |         /
+     \        +--------------------------------------------+        /
+      \                                                             /
+       \                                                           /
+        +----------------------------- B ---------------------- +
+
+   A -> B -> C detour path stays entirely in free space, routing below
+   the blob. The test asserts that B survives in path_out (see gotcha #2
+   below - checking path_out.size() alone is not sufficient).
+```
+
+Test flow:
+
+```mermaid
+flowchart TD
+    A[Build GridMap: free everywhere,<br/>20x20 NaN blob w/ 4x4 obstacle island buried inside] --> B[addDistanceTransform seeded from free space]
+    B --> C{Sanity check:<br/>obstacle cell occupancy==100<br/>AND distance_transform==FLT_MAX?}
+    C -->|no| F1[FAIL: test map no longer<br/>reproduces bug precondition]
+    C -->|yes| D[shortCutPath&#40;map, path_in = A,B,C&#41;]
+    D --> E{Is detour waypoint B<br/>present in path_out?}
+    E -->|yes, PASS| G[Fix present: shortcut through # correctly rejected]
+    E -->|no, FAIL| H[Bug reproduced: shortcut cut straight through # obstacle]
 ```
 
 ### Two gotchas hit while designing the test
