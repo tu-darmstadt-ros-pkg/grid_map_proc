@@ -81,6 +81,14 @@ namespace grid_map_path_planning{
                       const std::string expl_trans_layer = "exploration_transform");
 
 
+    // Explicit occupancy-layer overload; keep the original signature available.
+    bool shortCutPath(grid_map::GridMap& grid_map,
+                      const std::vector<grid_map::Index>& path_in,
+                      std::vector<grid_map::Index>& path_out,
+                      const std::string dist_trans_layer,
+                      const std::string expl_trans_layer,
+                      const std::string occupancy_layer);
+
     void touchDistanceField(const grid_map::Matrix& dist_trans_map,
                          const grid_map::Index& current_point,
                          const int idx_x,
@@ -127,22 +135,12 @@ namespace grid_map_path_planning{
     bool shortCutValid(const grid_map::GridMap& grid_map,
                       const grid_map::Matrix& dist_trans_map,
                       const grid_map::Index& start_point,
-                      const grid_map::Index& end_point)
-    {
+                      const grid_map::Index& end_point);
 
-      for (grid_map::LineIterator iterator (grid_map, start_point, end_point);
-           !iterator.isPastEnd(); ++iterator) {
-
-         const grid_map::Index index(*iterator);
-
-         if ( (dist_trans_map(index(0), index(1)) < 11.0) &&
-              !( (index(0) == end_point(0)) && (index(1) == end_point(1))) ){
-           return false;
-         }
-
-      }
-      return true;
-
-    }
+    bool shortCutValid(const grid_map::GridMap& grid_map,
+                      const grid_map::Matrix& dist_trans_map,
+                      const grid_map::Index& start_point,
+                      const grid_map::Index& end_point,
+                      const std::string occupancy_layer);
 
 } /* namespace */

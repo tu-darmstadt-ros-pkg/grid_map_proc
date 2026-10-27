@@ -183,27 +183,26 @@ namespace grid_map_transforms{
                             const std::string occupancy_layer,
                             const std::string dist_trans_layer)
   {
-    if (!grid_map.exists(occupancy_layer))
+    // Collect first: an invalid seed must not destroy a previously cached field
+    // or its obstacle/frontier lists. Only free cells can seed the flood fill.
+    std::vector<grid_map::Index> new_obstacle_cells;
+    std::vector<grid_map::Index> new_frontier_cells;
+    if (!collectReachableObstacleCells(grid_map,
+                                      seed_point,
+                                      new_obstacle_cells,
+                                      new_frontier_cells,
+                                      min_frontier_dist_,
+                                      min_frontier_size,
+                                      occupancy_layer)) {
       return false;
+    }
 
     grid_map::Matrix& grid_data = grid_map[occupancy_layer];
-
     grid_map.add(dist_trans_layer, std::numeric_limits<float>::max());
     grid_map::Matrix& dist_layer (grid_map[dist_trans_layer]);
-
+    obstacle_cells.swap(new_obstacle_cells);
+    frontier_cells.swap(new_frontier_cells);
     std::queue<grid_map::Index> point_queue;
-
-    obstacle_cells.clear();
-    frontier_cells.clear();
-
-
-    collectReachableObstacleCells(grid_map,
-                                  seed_point,
-                                  obstacle_cells,
-                                  frontier_cells,
-                                  min_frontier_dist_,
-                                  min_frontier_size,
-                                  occupancy_layer);
 
     for (size_t i = 0; i < obstacle_cells.size(); ++i){
       const grid_map::Index& point = obstacle_cells[i];
@@ -458,7 +457,14 @@ namespace grid_map_transforms{
                                      const std::string dist_seed_layer)
   {
 
-    if (!grid_map.exists(occupancy_layer))
+    if (!grid_map.exists(occupancy_layer) ||
+        (seed_point < 0).any() || (seed_point >= grid_map.getSize()).any())
+      return false;
+
+    // Starting inside an obstacle can discover only its immediate neighbours,
+    // leaving other obstacles at the uncomputed distance sentinel. Unknown
+    // (including NaN) cells cannot establish a reachable free component either.
+    if (grid_map.at(occupancy_layer, seed_point) != 0.0f)
       return false;
 
     auto resolution = static_cast<float>(grid_map.getResolution());
