@@ -1,4 +1,6 @@
 #include <grid_map_proc/grid_map_path_planning.h>
+#include <cmath>
+#include <limits>
 
 
 #include <opencv2/highgui/highgui.hpp>
@@ -153,7 +155,8 @@ namespace grid_map_path_planning{
 
     std::vector <grid_map::Index> refined_path_indices;
 
-    shortCutPath(grid_map, path_indices, refined_path_indices);
+    shortCutPath(grid_map, path_indices, refined_path_indices,
+                 dist_trans_layer, expl_trans_layer, occupancy_layer);
 
     path_indices = refined_path_indices;
 
@@ -472,11 +475,56 @@ namespace grid_map_path_planning{
     return false;
   }
 
+  bool shortCutValid(const grid_map::GridMap& grid_map,
+                     const grid_map::Matrix& dist_trans_map,
+                     const grid_map::Index& start_point,
+                     const grid_map::Index& end_point)
+  {
+    return shortCutValid(grid_map, dist_trans_map, start_point, end_point, "occupancy");
+  }
+
+  bool shortCutValid(const grid_map::GridMap& grid_map,
+                     const grid_map::Matrix& dist_trans_map,
+                     const grid_map::Index& start_point,
+                     const grid_map::Index& end_point,
+                     const std::string occupancy_layer)
+  {
+    if (!grid_map.exists(occupancy_layer))
+      return false;
+
+    const auto& occupancy = grid_map[occupancy_layer];
+    for (grid_map::LineIterator it(grid_map, start_point, end_point); !it.isPastEnd(); ++it) {
+      const grid_map::Index index(*it);
+      const float distance = dist_trans_map(index(0), index(1));
+      // Clearance alone is insufficient: unvisited obstacles have FLT_MAX
+      // distance, and nonfinite values also bypass a simple minimum check.
+      if (occupancy(index(0), index(1)) != 0.0f || !std::isfinite(distance) ||
+          distance == std::numeric_limits<float>::max())
+        return false;
+
+      // Preserve the endpoint clearance exception, but never exempt occupancy.
+      if (distance < 11.0f && !(index == end_point).all())
+        return false;
+    }
+    return true;
+  }
+
+  bool shortCutPath(grid_map::GridMap& grid_map,
+                    const std::vector<grid_map::Index>& path_in,
+                    std::vector<grid_map::Index>& path_out,
+                    const std::string dist_trans_layer,
+                    const std::string expl_trans_layer)
+  {
+    return shortCutPath(grid_map, path_in, path_out, dist_trans_layer,
+                        expl_trans_layer, "occupancy");
+  }
+
   bool shortCutPath(grid_map::GridMap& grid_map,
                     const std::vector <grid_map::Index>& path_in,
                     std::vector <grid_map::Index>& path_out,
                     const std::string dist_trans_layer,
-                    const std::string expl_trans_layer)
+                    const std::string expl_trans_layer,
+                    const std::string occupancy_layer)
   {
     if (path_in.size() < 2){
       path_out = path_in;
@@ -504,7 +552,7 @@ namespace grid_map_path_planning{
         const grid_map::Index& test_index = path_in[test_idx];
 
         //std::cout << "idx: " << idx << " test_idx: " << test_idx << " size: " << path_in.size() << " \n";
-        if (!shortCutValid(grid_map, dist_data, current_index, test_index)){
+        if (!shortCutValid(grid_map, dist_data, current_index, test_index, occupancy_layer)){
           idx = test_idx-1;
           break;
         }else{
