@@ -1,5 +1,9 @@
 #pragma once
 
+// grid_map_core's TypeDefs.hpp uses uint64_t without including <cstdint>, which
+// GCC 13's standard library no longer provides transitively. Include it first.
+#include <cstdint>
+
 // Grid Map
 #include <grid_map_ros/grid_map_ros.hpp>
 
